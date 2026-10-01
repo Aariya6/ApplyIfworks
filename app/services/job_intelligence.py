@@ -8,6 +8,7 @@ COUNTRY_ALIASES={
     'austria':['austria','vienna','wien'], 'belgium':['belgium','brussels'],
     'switzerland':['switzerland','zurich','zürich','geneva','lausanne'],
     'france':['france','paris'], 'ireland':['ireland','dublin'],
+    'italy':['italy','italia','milan','milano','rome','roma','turin','torino'],
     'spain':['spain','madrid','barcelona'], 'finland':['finland','helsinki'],
     'sweden':['sweden','stockholm'], 'denmark':['denmark','copenhagen'],
     'norway':['norway','oslo'], 'poland':['poland','warsaw','krakow','kraków'],
@@ -26,7 +27,7 @@ COUNTRY_ALIASES={
     'japan':['japan','tokyo'], 'south africa':['south africa'], 'new zealand':['new zealand'],
 }
 NON_EU_TARGET={'switzerland','united kingdom','singapore','norway','estonia'}
-EU_TARGET={'germany','netherlands','austria','belgium','france','ireland','spain','finland','sweden','denmark','poland','czechia'}
+EU_TARGET={'germany','netherlands','austria','belgium','france','ireland','italy','spain','finland','sweden','denmark','poland','czechia'}
 # Countries we can confidently detect but never want to rank highly for this candidate: no
 # EOR/worldwide-remote signal rescues these, since "prefer only Europe" was explicit.
 NON_TARGET_COUNTRIES={'united states','canada','australia','brazil','mexico','japan','south africa','new zealand'}
