@@ -1,0 +1,11 @@
+company,website,country,sector,remote_signal
+Automattic,https://automattic.com,Global,software,remote-first
+GitLab,https://about.gitlab.com,Global,developer-tools,all-remote
+Canonical,https://canonical.com,Global,software,remote-first
+Elastic,https://www.elastic.co,Global,developer-tools,distributed
+Zapier,https://zapier.com,Global,software,all-remote
+Spotify,https://www.spotify.com,Sweden,software,distributed
+HashiCorp,https://www.hashicorp.com,Global,developer-tools,remote-first
+Mozilla,https://www.mozilla.org,Global,software,remote-friendly
+Doist,https://doist.com,Global,software,all-remote
+Buffer,https://buffer.com,Global,software,all-remote

@@ -1,0 +1,11 @@
+# Only populate these templates when you have verified the provider's documented public endpoint.
+# Never guess an endpoint. Empty templates remain disabled.
+# ashby/workable verified live against api.ashbyhq.com and apply.workable.com public job-board
+# APIs (2026-09-23): both return a bare {"jobs":[...]} document for a public company slug, no auth.
+ashby:
+  endpoint_template: "https://api.ashbyhq.com/posting-api/job-board/{company}"
+workable:
+  endpoint_template: "https://apply.workable.com/api/v1/widget/accounts/{company}?details=true"
+# Personio's public feed is XML, not JSON, and needs a different parser than ConfiguredATS
+# provides today. Left disabled until a dedicated adapter is written.
+personio: {}

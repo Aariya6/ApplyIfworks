@@ -1,0 +1,131 @@
+{
+  "candidate": {
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phone": "+1-555-0100",
+    "city": "Remote",
+    "linkedin": "https://linkedin.com/in/jane-doe",
+    "github": "",
+    "leetcode": "",
+    "work_authorization": "Describe your real work authorization status here -- e.g. country of residence, visa/EOR needs",
+    "notice_period": "Flexible; discuss per role",
+    "languages": {
+      "English": "C1 Advanced"
+    },
+    "is_india_based": false
+  },
+  "preferences": {
+    "regions": [
+      "Europe",
+      "EU",
+      "EEA",
+      "UK"
+    ],
+    "remote_required": true,
+    "full_time_required": true,
+    "exclude_titles": [
+      "Sales",
+      "Account Executive",
+      "Business Development Representative",
+      "Cold Caller",
+      "Telemarketer"
+    ],
+    "preferred_domains": [
+      "AI",
+      "Machine Learning",
+      "Software Engineering",
+      "Data",
+      "Cloud"
+    ],
+    "preferred_salary_eur": 60000,
+    "daily_review_target": 40,
+    "max_years_experience": 1,
+    "target_countries": [
+      "Germany",
+      "Netherlands",
+      "Ireland"
+    ],
+    "target_role_level": "early-career / graduate-friendly",
+    "application_strategy": "curated_high_fit",
+    "daily_application_target": 35
+  },
+  "career_requirements": {
+    "_note": "Persistent non-negotiables and preferences. These are filters/preferences the system reads, not assumptions it invents about you. Every field is editable here.",
+    "employment": {
+      "full_time_only": true,
+      "remote_required": true,
+      "remote_from_india_required": false,
+      "europe_global_preferred": true,
+      "eor_acceptable": true,
+      "relocation_open_to": true,
+      "visa_sponsorship_open_to": true
+    },
+    "compensation": {
+      "minimum_acceptable_eur": 40000,
+      "preferred_eur": 60000,
+      "currency": "EUR",
+      "employee_vs_contractor": "either",
+      "benefits_expectations": "not yet specified"
+    },
+    "role_preferences": {
+      "core": ["AI_ENGINEERING", "SOFTWARE", "DATA", "MLOPS_PLATFORM"],
+      "adjacent": ["AI_PRODUCT", "PRODUCT_MANAGEMENT", "PROGRAM_MANAGEMENT", "DEVELOPER_RELATIONS", "TECHNICAL_COMMUNICATION", "COMMUNITY_OPERATIONS", "CONSULTING_SOLUTIONS", "AI_HUMANITIES"],
+      "exploratory": ["HUMANITIES_LITERATURE"],
+      "allocation_targets": {
+        "core_pct": 80, "adjacent_pct": 15, "exploratory_pct": 5,
+        "_note": "Configurable starting points, not scientifically optimal targets -- adjust freely."
+      }
+    },
+    "company_preferences": {
+      "size": "any", "stage": ["startup", "scale-up"], "remote_culture_required": true,
+      "international_teams_preferred": true, "mission_notes": "describe what kind of company mission/product you care about"
+    },
+    "personal_direction": "A short paragraph on what you actually want your career to look like."
+  },
+  "voice_profile": {
+    "_note": "Used by the application-question and paste-sheet generators instead of a hardcoded style. Edit this directly to change how generated answers sound.",
+    "tone": ["natural", "intelligent", "direct", "conversational", "not corporate", "not excessively enthusiastic"],
+    "avoid_phrases": ["passionate about leveraging", "dynamic professional", "results-driven", "synergistic", "leverage my passion", "thrilled to"],
+    "prefer": ["concrete examples", "slightly conversational phrasing", "specific references to the company/product", "concise answers", "honest uncertainty"],
+    "writing_samples": [],
+    "_writing_samples_note": "Add real excerpts of your own writing here (emails, messages, notes) to use as style evidence instead of an invented personality. Empty by default -- nothing is fabricated to fill this in."
+  },
+  "education": [
+    {
+      "institution": "Example University",
+      "degree": "B.Sc, Computer Science",
+      "start": "2023-08",
+      "end": "2027-05",
+      "location": "City, Country"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Example Internship Title",
+      "company": "Example Company",
+      "start": "2026-01",
+      "end": "Present",
+      "location": "Remote",
+      "bullets": [
+        "Describe a real, checkable thing you did -- never invented by the system, always your own words."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Example Project",
+      "stack": ["Python"],
+      "bullets": [
+        "Describe what it actually does and what you built."
+      ]
+    }
+  ],
+  "skills": {
+    "Languages": ["Python", "SQL"],
+    "Tools": ["Git"],
+    "Domains": ["Machine Learning"]
+  },
+  "certifications": [],
+  "hackathons": [],
+  "factuality_policy": "Never add a skill, employer, degree, metric, certification, job title, location, language level, salary claim or work-authorisation claim unless it exists in this profile or the user explicitly approves the change. Reordering, spelling out abbreviations and truthful reframing are allowed."
+}

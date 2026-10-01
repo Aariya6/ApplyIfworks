@@ -1,0 +1,21 @@
+questions:
+  - {category: PROFILE, question: "What is your full name?", answer_key: candidate.name}
+  - {category: PROFILE, question: "What is your email address?", answer_key: candidate.email}
+  - {category: PROFILE, question: "What is your phone number?", answer_key: candidate.phone}
+  - {category: PROFILE, question: "What is your LinkedIn URL?", answer_key: candidate.linkedin}
+  - {category: PROFILE, question: "Where are you currently based?", answer_key: candidate.city}
+  - {category: EDUCATION, question: "What university do you attend?", answer_key: education.0.institution}
+  - {category: EDUCATION, question: "What degree are you pursuing?", answer_key: education.0.degree}
+  - {category: EDUCATION, question: "What is your expected graduation date?", answer_key: education.0.end}
+  - {category: EDUCATION, question: "What is your current field of study?", answer_key: education.0.degree}
+  - {category: LANGUAGE, question: "What is your English level?", answer_key: candidate.languages.English}
+  - {category: LANGUAGE, question: "What is your German level?", answer_key: candidate.languages.German}
+  - {category: WORK_AUTHORIZATION, question: "Are you legally authorized to work in this country?", answer_key: candidate.work_authorization, requires_review: true}
+  - {category: VISA, question: "Will you require visa sponsorship?", answer_key: candidate.work_authorization, requires_review: true}
+  - {category: AVAILABILITY, question: "What is your notice period / availability?", answer_key: candidate.notice_period}
+  - {category: SALARY, question: "What are your salary expectations?", answer_key: preferences.preferred_salary_eur, requires_review: true}
+  - {category: LOCATION, question: "Are you currently located in India?", answer_key: candidate.is_india_based}
+  - {category: REMOTE, question: "Are you looking for full-time remote work?", answer_key: preferences.remote_required}
+  - {category: EMPLOYMENT, question: "Are you seeking a full-time position?", answer_key: preferences.full_time_required}
+  - {category: CAREER_LEVEL, question: "What level of role are you targeting?", answer_key: preferences.target_role_level}
+  - {category: LANGUAGES, question: "Which languages do you speak?", answer_key: candidate.languages}

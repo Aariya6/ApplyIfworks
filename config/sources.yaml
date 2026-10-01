@@ -1,0 +1,1047 @@
+sources:
+  remoteok:
+    enabled: true
+    adapter: remoteok
+    capability: LIVE_API
+    url: https://remoteok.com/api
+  arbeitnow:
+    enabled: true
+    adapter: arbeitnow
+    capability: LIVE_API
+    url: https://www.arbeitnow.com/api/job-board-api
+  remotive:
+    enabled: true
+    adapter: remotive
+    capability: LIVE_API
+    url: https://remotive.com/api/remote-jobs
+  greenhouse:
+    enabled: true
+    adapter: greenhouse
+    capability: ATS_DIRECT
+    companies:
+    - elastic
+    - gitlab
+    - automattic
+    - canonical
+    - zapier
+  lever:
+    enabled: true
+    adapter: lever
+    capability: ATS_DIRECT
+    companies:
+    - canonical
+    - proton
+    - scaleai
+  smartrecruiters:
+    enabled: true
+    adapter: smartrecruiters
+    capability: ATS_DIRECT
+    companies: []
+  remote_friendly_germany:
+    enabled: true
+    adapter: company_seed
+    capability: COMPANY_REGISTRY
+    source_file: config/remote_friendly_germany.csv
+  global_public_catalog:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    run_timeout_seconds: 20
+    max_pages: 2
+    sites:
+    - name: Hiring.cafe
+      url: https://hiring.cafe/
+      category: niche_remote
+      link_patterns:
+      - /jobs?
+      - /job/
+      - /jobs/
+    - name: AIJobs.net
+      url: https://aijobs.net/
+      category: ai_jobs
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /remoteanywhere-jobs
+    - name: Himalayas
+      url: https://himalayas.app/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: YC Work at a Startup
+      url: https://www.workatastartup.com/jobs
+      category: startup
+      link_patterns:
+      - /companies/
+      - /jobs/
+      - /roles/
+    - name: We Work Remotely
+      url: https://weworkremotely.com/remote-jobs
+      category: remote_board
+      card_selectors:
+      - li.feature
+      - section.job
+      - article
+      title_selectors:
+      - h2
+      - h3
+      - a
+    - name: Wellfound
+      url: https://wellfound.com/jobs
+      category: startup
+      link_patterns:
+      - /jobs/
+      - /role/
+    - name: Working Nomads
+      url: https://www.workingnomads.com/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Remote Rocketship
+      url: https://www.remoterocketship.com/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Jobspresso
+      url: https://jobspresso.co/remote-work/
+      category: remote_board
+      link_patterns:
+      - /job/
+      - /remote-work/
+    - name: NoDesk
+      url: https://nodesk.co/remote-jobs/
+      category: remote_board
+      link_patterns:
+      - /remote-jobs/
+      - /jobs/
+    - name: Remote100K
+      url: https://remote100k.com/
+      category: high_compensation
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Remote.co
+      url: https://remote.co/remote-jobs/
+      category: remote_board
+      link_patterns:
+      - /remote-jobs/
+      - /job/
+    - name: Jobicy
+      url: https://jobicy.com/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Dynamite Jobs
+      url: https://dynamitejobs.com/
+      category: remote_board
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: JustRemote
+      url: https://justremote.co/remote-jobs
+      category: remote_board
+      link_patterns:
+      - /remote-jobs/
+      - /job/
+    - name: Virtual Vocations
+      url: https://www.virtualvocations.com/
+      category: remote_board
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Jobgether
+      url: https://jobgether.com/
+      category: remote_board
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Flexa Careers
+      url: https://flexa.careers/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: 4 Day Week Jobs
+      url: https://4dayweek.io/jobs
+      category: remote_board
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Remofirst Jobs
+      url: https://www.remofirst.com/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Crossover
+      url: https://www.crossover.com/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: EuroRemote
+      url: https://euroremote.eu/
+      category: Europe_remote
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: EU Remote Jobs
+      url: https://euremotejobs.com/
+      category: Europe_remote
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: EuropeRemotely
+      url: https://europeremotely.com/
+      category: Europe_remote
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: JointheAmbitious
+      url: https://jointheambitious.com/
+      category: Europe_remote
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Landing.jobs
+      url: https://landing.jobs/
+      category: Europe_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Relocate.me
+      url: https://relocate.me/international-jobs
+      category: Europe_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Welcome to the Jungle
+      url: https://www.welcometothejungle.com/en/jobs
+      category: Europe_tech
+      link_patterns:
+      - /en/companies/
+      - /en/jobs/
+    - name: EU-Startups Jobs
+      url: https://www.eu-startups.com/job-board/
+      category: startup
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: EnglishJobs.de
+      url: https://englishjobs.de/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Berlin Startup Jobs
+      url: https://berlinstartupjobs.com/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Vienna Startup Jobs
+      url: https://viennastartupjobs.com/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: German Silicon Valley
+      url: https://germansiliconvalley.com/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Tech.eu Jobs
+      url: https://tech.eu/jobs/
+      category: Europe_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: DevITJobs
+      url: https://devitjobs.com/jobs/all/all/all
+      category: developer
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: SwissDevJobs
+      url: https://swissdevjobs.ch/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: GermanTechJobs
+      url: https://germantechjobs.de/en/jobs
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Stepstone DE
+      url: https://www.stepstone.de/en/jobs/
+      category: DACH_EU
+      link_patterns:
+      - /stellenangebote--
+      - /job/
+      - /jobs/
+    - name: Stepstone AT
+      url: https://www.stepstone.at/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: XING Jobs
+      url: https://www.xing.com/jobs
+      category: DACH_EU
+      access_mode: LINK_ONLY
+    - name: Jobs.ch
+      url: https://www.jobs.ch/en/
+      category: DACH_EU
+      link_patterns:
+      - /en/vacancies/
+      - /jobs/
+    - name: Karriere.at
+      url: https://www.karriere.at/jobs
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Arbeitsagentur
+      url: https://jobboerse.arbeitsagentur.de/
+      category: DACH_EU
+      link_patterns:
+      - /jobs/
+      - /stellenangebote/
+    - name: Honeypot
+      url: https://www.honeypot.io/
+      category: DACH_EU
+      access_mode: LINK_ONLY
+    - name: AI Jobs
+      url: https://ai-jobs.net/
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: ML Jobs
+      url: https://mljobs.io/
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Data Science Jobs
+      url: https://datasciencejobs.com/
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Kaggle Jobs
+      url: https://www.kaggle.com/jobs
+      category: ai_jobs
+      access_mode: LINK_ONLY
+    - name: Hugging Face Jobs
+      url: https://huggingface.co/jobs
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Recooty AI Board
+      url: https://recooty.com/jobs
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: MLOps Community Jobs
+      url: https://mlops.community/jobs
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Physical AI Jobs
+      url: https://www.physicalaijobs.com/
+      category: ai_jobs
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Semiconductor Design Jobs
+      url: https://www.semiconductordesignjobs.com/
+      category: niche_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Cryptocurrency Jobs
+      url: https://cryptocurrencyjobs.co/
+      category: niche_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Authentic Jobs
+      url: https://authenticjobs.com/
+      category: developer
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Built In
+      url: https://builtin.com/jobs
+      category: startup
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Hacker News Who Is Hiring
+      url: https://news.ycombinator.com/
+      category: community
+      link_patterns:
+      - /item?id=
+      title_patterns:
+      - hiring
+      - engineer
+      - developer
+      - machine learning
+      - ai
+      - data
+    - name: Indie Hackers Jobs
+      url: https://www.indiehackers.com/jobs
+      category: startup
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Turing
+      url: https://www.turing.com/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Andela
+      url: https://www.andela.com/for-talent
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Arc
+      url: https://arc.dev/remote-jobs
+      category: talent_network
+      link_patterns:
+      - /remote-jobs/
+      - /job/
+    - name: Toptal
+      url: https://www.toptal.com/
+      category: talent_network
+      access_mode: LINK_ONLY
+    - name: Contra
+      url: https://contra.com/jobs
+      category: freelance
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Gun.io
+      url: https://gun.io/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Lemon.io
+      url: https://lemon.io/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Upwork
+      url: https://www.upwork.com/freelance-jobs/
+      category: freelance
+      access_mode: LINK_ONLY
+    - name: Indeed
+      access_mode: LINK_ONLY
+      url: https://www.indeed.com/jobs
+      category: general_board
+      access_mode: LINK_ONLY
+    - name: LinkedIn Jobs
+      access_mode: LINK_ONLY
+      url: https://www.linkedin.com/jobs/
+      category: general_board
+      access_mode: LINK_ONLY
+    - name: Glassdoor Jobs
+      access_mode: LINK_ONLY
+      url: https://www.glassdoor.com/Job/
+      category: general_board
+      access_mode: LINK_ONLY
+  talent_networks:
+    enabled: true
+    adapter: catalog_html
+    capability: TALENT_NETWORK
+    max_pages: 2
+    sites:
+    - name: Remote.com Jobs
+      url: https://remote.com/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Deel Jobs
+      url: https://www.deel.com/careers
+      category: talent_network
+      link_patterns:
+      - /careers/
+      - /jobs/
+      - /job/
+    - name: Oyster HR Careers
+      url: https://www.oysterhr.com/careers
+      category: talent_network
+      link_patterns:
+      - /careers/
+      - /jobs/
+    - name: Remofirst Careers
+      url: https://www.remofirst.com/careers
+      category: talent_network
+      link_patterns:
+      - /careers/
+      - /jobs/
+    - name: Crossover
+      url: https://www.crossover.com/jobs
+      category: talent_network
+      link_patterns:
+      - /jobs/
+      - /job/
+  specialist_feeds:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    sites:
+    - name: JobBoardSearch
+      url: https://jobboardsearch.com/remote-jobs
+      category: meta_directory
+      link_patterns:
+      - /remote-jobs/
+      - /job/
+    - name: EuroJobs
+      url: https://www.eurojobs.com/
+      category: Europe_remote
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: JobsinNetwork
+      url: https://www.jobsinnetwork.com/
+      category: Europe_remote
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Europe Language Jobs
+      url: https://www.europelanguagejobs.com/
+      category: Europe_remote
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: IT Jobs Worldwide
+      url: https://www.itjobsworldwide.com/
+      category: Europe_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Startup.jobs
+      url: https://startup.jobs/
+      category: startup
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: VentureLoop
+      url: https://www.ventureloop.com/ventureloop/job_list.php
+      category: startup
+      link_patterns:
+      - /job/
+      - job_list
+    - name: Techstars
+      url: https://www.techstars.com/jobs
+      category: startup
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: Climatebase
+      url: https://climatebase.org/jobs
+      category: niche_tech
+      link_patterns:
+      - /jobs/
+      - /job/
+    - name: FlexJobs
+      url: https://www.flexjobs.com/search
+      category: remote_board
+      access_mode: LINK_ONLY
+    - name: Virtual Vocations
+      url: https://www.virtualvocations.com/
+      category: remote_board
+      link_patterns:
+      - /job/
+      - /jobs/
+  country_denmark:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Denmark
+    sites:
+    - name: JobsInEnglish.dk
+      url: https://jobsinenglish.dk/category/information-technology-it/
+      category: Denmark_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Workindenmark
+      url: https://www.workindenmark.dk/
+      category: Denmark_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: The Hub Denmark
+      url: https://thehub.io/jobs
+      category: Denmark_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Jobindex
+      url: https://www.jobindex.dk/jobsoegning
+      category: Denmark_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_belgium:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Belgium
+    sites:
+    - name: EnglishJobs.be
+      url: https://englishjobs.be/
+      category: Belgium_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: VDAB
+      url: https://www.vdab.be/vindeenjob
+      category: Belgium_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Actiris
+      url: https://www.actiris.brussels/
+      category: Belgium_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: The Hub Belgium
+      url: https://thehub.io/jobs
+      category: Belgium_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_finland:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Finland
+    sites:
+    - name: JobsFinland
+      url: https://jobsfinland.fi/
+      category: Finland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: EnglishJobs.fi
+      url: https://englishjobs.fi/
+      category: Finland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Work in Finland
+      url: https://www.workinfinland.com/en/
+      category: Finland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Duunitori
+      url: https://duunitori.fi/tyopaikat
+      category: Finland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_switzerland:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Switzerland
+    sites:
+    - name: Jobs.ch
+      url: https://www.jobs.ch/en/vacancies/
+      category: Switzerland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: SwissDevJobs
+      url: https://swissdevjobs.ch/
+      category: Switzerland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: JobsZurich
+      url: https://jobszurich.ch/en/
+      category: Switzerland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: ICTjobs.ch
+      url: https://www.ictjobs.ch/
+      category: Switzerland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_poland:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Poland
+    sites:
+    - name: No Fluff Jobs
+      url: https://nofluffjobs.com/
+      category: Poland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Just Join IT
+      url: https://justjoin.it/
+      category: Poland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Bulldogjob
+      url: https://bulldogjob.pl/
+      category: Poland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Pracuj.pl
+      url: https://www.pracuj.pl/
+      category: Poland_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_sweden:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Sweden
+    sites:
+    - name: SwedJobs
+      url: https://www.swedjobs.com/
+      category: Sweden_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Arbetsförmedlingen
+      url: https://arbetsformedlingen.se/
+      category: Sweden_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: The Hub Sweden
+      url: https://thehub.io/jobs
+      category: Sweden_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_estonia:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Estonia
+    sites:
+    - name: Work in Estonia
+      url: https://workinestonia.com/
+      category: Estonia_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: CV.ee
+      url: https://www.cv.ee/en
+      category: Estonia_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: CVKeskus
+      url: https://www.cvkeskus.ee/
+      category: Estonia_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: MeetFrank
+      url: https://meetfrank.com/
+      category: Estonia_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_ireland:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Ireland
+    sites:
+    - name: TechJobs.ie
+      url: https://www.techjobs.ie/
+      category: Ireland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: IrishJobs
+      url: https://www.irishjobs.ie/
+      category: Ireland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: Jobs.ie
+      url: https://www.jobs.ie/
+      category: Ireland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: PublicJobs.ie
+      url: https://publicjobs.ie/
+      category: Ireland_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_singapore:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: Singapore
+    sites:
+    - name: MyCareersFuture
+      url: https://www.mycareersfuture.gov.sg/
+      category: Singapore_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: JobStreet Singapore
+      url: https://www.jobstreet.com.sg/
+      category: Singapore_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: JobsDB Singapore
+      url: https://sg.jobsdb.com/
+      category: Singapore_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+    - name: e27 Jobs
+      url: https://e27.co/jobs/
+      category: Singapore_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+      - /vacancies/
+      - /en/
+  country_india:
+    enabled: true
+    adapter: catalog_html
+    capability: SOURCE_SPECIFIC_HTML
+    max_pages: 2
+    country: India
+    sites:
+    - name: Instahyre
+      url: https://www.instahyre.com/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Cutshort
+      url: https://cutshort.io/jobs
+      category: India_jobs
+      access_mode: SOURCE_SPECIFIC_HTML
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Naukri
+      url: https://www.naukri.com/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Foundit (Monster India)
+      url: https://www.foundit.in/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Shine
+      url: https://www.shine.com/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: Hirect
+      url: https://hirect.in/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: IIMJobs
+      url: https://www.iimjobs.com/
+      category: India_jobs
+      access_mode: LINK_ONLY
+      link_patterns:
+      - /job/
+      - /jobs/
+    - name: AngelList India / Wellfound India
+      url: https://wellfound.com/location/india
+      category: India_jobs
+      link_patterns:
+      - /jobs/
+      - /role/
+  company_universe:
+    enabled: true
+    adapter: company_universe
+    capability: COMPANY_REGISTRY
+    source_file: config/company_universe.csv
+    run_timeout_seconds: 900
+  niche_rss_boards:
+    enabled: true
+    adapter: rss
+    capability: LIVE_API
+    # Real RSS feed URLs sourced from github.com/georgemandis/remote-working-list, a maintained
+    # community list of remote job boards. Picked only feeds not already covered by an existing
+    # source in this file, and only kept ones confirmed live by actually fetching them --
+    # functionaljobs.com (SSL failure), jobhunt.ai (DNS resolution failure, likely defunct) and
+    # privacyfirstjobs.com (404, feed path has moved) were dropped rather than shipped broken.
+    urls:
+    - https://www.fossjobs.net/rss/all/
+    - https://www.python.org/jobs/feed/rss/
+    - https://cryptojobslist.com/jobs.rss?jobLocation=Remote
+    - https://iloveremote.io/rss/jobs/city/remote.rss
+    - https://jobs.wordpress.net/feed/
+  company_career_pages_direct:
+    enabled: true
+    adapter: company_career_pages
+    capability: SOURCE_SPECIFIC_HTML
+    # A second "CareerHound": scrapes each already-known company's own careers page directly
+    # (JSON-LD JobPosting -> card selectors -> constrained job-link patterns), instead of only
+    # surfacing jobs when company_universe recognizes that company's ATS. Catches postings from
+    # companies on a custom-built or unrecognized careers page. Runs after company_universe/
+    # company_seed populate the companies table with careers_url values to scrape.
+    max_companies: 400
+    timeout: 15
+    run_timeout_seconds: 900

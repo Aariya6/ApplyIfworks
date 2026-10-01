@@ -1,0 +1,20 @@
+.env
+
+# Personal data: your real identity/profile. Only the .example template is tracked.
+config/profile.json
+
+# Proprietary/personal research databases -- kept local, never committed. Only the small
+# .example starter lists are tracked so the project is runnable out of the box.
+config/company_universe.csv
+config/remote_friendly_germany.csv
+
+# All runtime/generated state: SQLite DB, resumes, letters, evidence, browser profile, logs,
+# exports. None of this should ever end up in the repo -- it's all personal application history
+# or generated artifacts, and db.py/apply.py recreate the directory structure on first run.
+data/
+
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/

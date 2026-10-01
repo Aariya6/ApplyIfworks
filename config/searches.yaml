@@ -1,0 +1,26 @@
+queries:
+  - "AI Engineer"
+  - "Machine Learning Engineer"
+  - "Applied AI Engineer"
+  - "AI Product"
+  - "Research Engineer AI"
+  - "AI Solutions Engineer"
+  - "ML Platform Engineer"
+  - "Data Engineer"
+  - "Python Engineer"
+  - "LLM Engineer"
+  - "Responsible AI"
+  - "AI Policy"
+  - "AI Education"
+  - "Technical Program Manager AI"
+  - "Developer Relations AI"
+  - "Technical Writer AI"
+  - "AI + Humanities"
+locations:
+  - Europe
+  - European Union
+  - Remote Europe
+  - DACH
+remote_terms: [remote, distributed, "work from anywhere", "remote europe", "remote eu"]
+exclude_terms: [sales, "account executive", "business development representative", "cold caller", telemarketing]
+max_results_per_source: 100
