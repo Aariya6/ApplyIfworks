@@ -29,4 +29,16 @@ def extract_ats_slug(url,ats):
         i=path.index("companies"); return path[i+1] if i+1<len(path) else ""
     if ats=="ashby" and path: return path[0]
     if ats=="workable" and path and path[0] not in {"j",""}: return path[0]
+    if ats=="workday":
+        # Real Workday career-site hostnames look like tenant.wd5.myworkdayjobs.com, with the
+        # actual job-board "site" name as a path segment (often after a locale like en-US) --
+        # confirmed live against nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite and
+        # fractal.wd1.myworkdayjobs.com/Careers. Composite slug carries all three pieces the
+        # Workday adapter needs, since this project's ATS dispatch only passes one slug string.
+        m=re.match(r'^([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com$',host)
+        if not m: return ""
+        tenant,wd=m.group(1),m.group(2)
+        parts=[p for p in path if p and p.lower() not in {"en-us","en-gb","de-de","fr-fr"}]
+        site=parts[-1] if parts else ""
+        return f"{tenant}|{wd}|{site}" if site else ""
     return ""

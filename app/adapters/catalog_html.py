@@ -34,6 +34,29 @@ def _attr(node, names):
     return ""
 
 
+def _fetch_job_detail_text(url,p):
+    """Best-effort: follow a matched job link and extract real page text for the description,
+    instead of leaving the caller to repeat the link's own title text. Tries JSON-LD JobPosting
+    first (many individual job pages carry it even when the listing page doesn't), falling back
+    to the page's main textual content. Never raises -- a failed detail fetch just means the
+    caller falls back to the title, same as before this existed."""
+    try:
+        r=requests.get(url,headers={"User-Agent":UA,"Accept-Language":"en-US,en;q=0.9"},timeout=float(p.get("timeout",15)),allow_redirects=True)
+        r.raise_for_status()
+        soup=BeautifulSoup(r.text,"html.parser")
+    except Exception:
+        return None
+    for x in _jsonld(soup):
+        desc=clean_html(BeautifulSoup(str(x.get("description","")),"html.parser").get_text(" "))
+        if desc: return desc[:8000]
+    for sel in ["main","article",'[class*="job"]','[class*="description"]','[id*="job"]']:
+        node=soup.select_one(sel)
+        if node:
+            text=_text(node)
+            if len(text)>200: return text[:8000]
+    body=_text(soup.select_one("body"))
+    return body[:8000] if body else None
+
 def _jsonld(soup):
     out=[]
     for tag in soup.select('script[type="application/ld+json"]'):
@@ -126,11 +149,22 @@ class CatalogHTML(SourceAdapter):
                 jobs.append(self._job(p,title,company,loc,_text(card),href,sal,{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,remote))
         if not jobs:
             pats=p.get("link_patterns",[r"/job",r"/jobs/",r"/careers/",r"/position",r"/vacanc"])
+            candidates=[]
             for a in soup.select("a[href]"):
                 title=_text(a); href=urljoin(r.url,_attr(a,["href"]))
                 if not title or len(title)<5 or len(title)>180: continue
                 if not any(re.search(q,href,re.I) for q in pats): continue
                 if p.get("title_patterns") and not any(re.search(q,title,re.I) for q in p["title_patterns"]): continue
+                candidates.append((title,href))
+            # This tier previously used the link's own title text as the "description" -- meaning
+            # the actual job requirements were never captured, only the title repeated. Follow
+            # each matched link and pull the real page text instead. Capped per page call so a
+            # career page with hundreds of links doesn't trigger hundreds of extra requests.
+            max_detail_fetches=int(p.get("max_detail_fetches",15))
+            for title,href in candidates[:max_detail_fetches]:
+                desc=_fetch_job_detail_text(href,p) or title
+                jobs.append(self._job(p,title,p.get("default_company","") ,"",desc,href,"",{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,"unknown"))
+            for title,href in candidates[max_detail_fetches:]:
                 jobs.append(self._job(p,title,p.get("default_company","") ,"",title,href,"",{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,"unknown"))
         nxt=None
         for sel in p.get("next_selectors",['a[rel="next"]','a.next','a[aria-label*="Next"]']):

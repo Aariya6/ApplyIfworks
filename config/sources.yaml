@@ -1012,6 +1012,27 @@ sources:
       link_patterns:
       - /jobs/
       - /role/
+  google_jobs_search:
+    # Disabled by default -- requires a real SerpAPI key (SERPAPI_API_KEY in .env), a paid search
+    # API that legitimately surfaces Google Jobs results. This is the honest way to "search
+    # Google" for more postings: no raw scraping of google.com search results, no CAPTCHA
+    # bypass, no browser automation pretending to be a human typing queries -- all of which this
+    # project's own safety principles already rule out, and which risk getting the account/IP
+    # that runs it blocked. The adapter itself (app/adapters/serpapi.py) already no-ops if the
+    # key isn't set, so enabling this is safe even with no key configured.
+    enabled: false
+    adapter: serpapi
+    capability: LIVE_API
+    url: https://serpapi.com/search
+    queries:
+    - AI Engineer remote Europe
+    - Machine Learning Engineer remote Austria
+    - Software Engineer remote Ireland
+    - Data Engineer remote Italy
+    - AI Product Manager remote Europe
+    - Music technology engineer remote
+    - Creative technologist remote
+    - Digital humanities remote
   company_universe:
     enabled: true
     adapter: company_universe

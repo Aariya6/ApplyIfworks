@@ -31,3 +31,49 @@ class Workable(ConfiguredATS):
     name='workable'
 class Personio(ConfiguredATS):
     name='personio'
+
+class Workday(ATSAdapter):
+    """Workday's real public job-search API, confirmed live against nvidia.wd5.myworkdayjobs.com
+    and fractal.wd1.myworkdayjobs.com: POST .../wday/cxs/{tenant}/{site}/jobs for the paginated
+    list, then GET .../wday/cxs/{tenant}/{site}{externalPath} per posting for the full job
+    description -- the search results alone only carry a title and location, never the actual
+    requirements, which is the whole point of fetching Workday postings at all. One of the most
+    common enterprise ATS platforms and, until this adapter, entirely unsupported here: every
+    Workday-hosted company only ever surfaced zero jobs.
+    """
+    name='workday'
+    def discover(self, slug, display_name=None):
+        try: tenant,wd,site=slug.split('|')
+        except ValueError: return []
+        company=display_name or tenant.replace('-',' ').title()
+        base=f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
+        headers={'User-Agent':'RemoteJobPilot/4.0 (public job discovery)','Content-Type':'application/json'}
+        out=[]; offset=0; limit=20
+        # Capped per company so a single huge enterprise board (NVIDIA: 2000+ postings) doesn't
+        # dominate a discovery run -- this is a breadth-of-companies tool, not a full board mirror.
+        max_jobs=60
+        while len(out)<max_jobs:
+            try:
+                r=requests.post(f"{base}/jobs",headers=headers,json={"appliedFacets":{},"limit":limit,"offset":offset,"searchText":""},timeout=15)
+                r.raise_for_status(); data=r.json()
+            except Exception:
+                break
+            postings=data.get('jobPostings',[])
+            if not postings: break
+            for p in postings:
+                title=p.get('title',''); path=p.get('externalPath','')
+                if not title or not path: continue
+                loc=p.get('locationsText','') or ''
+                apply_url=f"https://{tenant}.{wd}.myworkdayjobs.com/{site}{path}"
+                desc=''
+                try:
+                    dr=requests.get(f"{base}{path}",headers=headers,timeout=15)
+                    if dr.ok:
+                        info=(dr.json() or {}).get('jobPostingInfo',{})
+                        desc=clean_html(info.get('jobDescription','')); loc=info.get('location') or loc
+                except Exception: pass
+                out.append(Job(Job.stable_id(company,title,loc,apply_url),title,company,loc,'unknown','unknown',p.get('postedOn',''),desc,self.name,apply_url,apply_url,'','workday',p))
+                if len(out)>=max_jobs: break
+            total=data.get('total',0); offset+=limit
+            if offset>=total: break
+        return out
