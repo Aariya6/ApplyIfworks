@@ -18,7 +18,12 @@ from .db import portfolio_projects, get_portfolio_project, skill_gap_signals
 from .services.skill_gap import compute_skill_gaps, recommend_project_focus
 from .services.company_intel import compute_all_company_fit
 ROOT=Path(__file__).resolve().parents[1]; app=FastAPI(title="Remote Job Pilot",version="4.3.0"); app.mount("/static",StaticFiles(directory=str(ROOT/"app/static")),name="static")
-def page(title,body): return HTMLResponse(f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{html.escape(title)}</title><link rel='stylesheet' href='/static/app.css'></head><body><nav><b>Remote Job Pilot</b><a href='/'>Dashboard</a><a href='/sources'>Sources</a><a href='/companies'>Companies</a><a href='/skill-gaps'>Skill Gaps</a><a href='/portfolio'>Portfolio</a><a href='/profile'>Profile</a><a href='/daily'>Daily</a><a href='/applications'>Tracker</a><a href='/resume'>Resume</a><a href='/qna'>Application Q&A</a><a href='/settings'>Safety</a></nav><main>{body}</main></body></html>")
+def page(title,body): return HTMLResponse(f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{html.escape(title)}</title>"
+    f"<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>"
+    f"<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600;700&display=swap'>"
+    f"<link rel='stylesheet' href='/static/app.css'></head><body>"
+    f"<nav><div class='brand'>Remote Job Pilot</div><div class='nav-links'><a href='/'>Dashboard</a><a href='/sources'>Sources</a><a href='/companies'>Companies</a><a href='/skill-gaps'>Skill Gaps</a><a href='/portfolio'>Portfolio</a><a href='/profile'>Profile</a><a href='/daily'>Daily</a><a href='/applications'>Tracker</a><a href='/resume'>Resume</a><a href='/qna'>Application Q&amp;A</a><a href='/settings'>Safety</a></div></nav>"
+    f"<main>{body}</main></body></html>")
 @app.get("/",response_class=HTMLResponse)
 def home(tier: str = "ALL"):
     p=load_profile(); js=jobs(2000)
@@ -429,7 +434,7 @@ def daily_control_center():
         else f"Only {perf['total_submitted']} submitted applications tracked so far — too few to draw conclusions about which track performs best. Keep applying across tracks; this table fills in as real outcomes come back.")
     from .services.auto_apply import eligible_jobs
     automatable_pool=len(eligible_jobs(limit=500))
-    automate_bar=(f"<div style='border:1px solid #888;padding:10px;margin:10px 0'>"
+    automate_bar=(f"<div class='automate-bar'>"
         f"<b>Automate Apply</b> — {automatable_pool} jobs currently eligible (QUALIFIED/TRANSFERABLE, "
         f"on a non-CAPTCHA-proven ATS, not yet applied to). Dry run fills and screenshots forms "
         f"without submitting anything. Real submission still respects the {daily_cap() or 'unlimited'}/day cap "
