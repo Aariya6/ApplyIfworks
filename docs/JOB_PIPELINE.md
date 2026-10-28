@@ -42,9 +42,12 @@ explicit `--applied-at` date/time so the pipeline cannot invent an application m
 eligible for network checks: RemoteOK, ArbeitNow, Remotive, Jobicy, We Work Remotely's public RSS
 feed, and the Greenhouse boards for GitLab, Elastic, and Canonical. Jobicy's public API documentation
 expressly supports job-discovery products and requests attribution/linking to the original listing.
+Its adapter follows the documented cursor for up to three pages, with a one-second delay between
+requests (at most 600 records per run).
 We Work Remotely's RSS endpoint is public, robots.txt allows it, and its terms grant limited-purpose
 access; collection is limited to this local job-discovery workflow and source listings are not
-republished. Live checks on 2026-10-29 returned 200 valid Jobicy records and 96 valid We Work
+republished. Live checks on 2026-10-29 returned 600 valid Jobicy records across three pages and
+96 valid We Work
 Remotely records. The remaining 100 rows remain `needs_review` and are not contacted by the
 pipeline. Their presence is a registry entry, not verification that the site was checked, can be
 scraped, or permits automated access. An eligible source is not proof that its individual jobs are
@@ -130,9 +133,9 @@ flowchart TD
 
 ## Latest live dry-run summary
 
-This full pipeline run completed on 2026-10-29 local time. All eight reviewed adapters succeeded;
-the remaining 100 registry entries were not contacted. Counts and run identifier change as
-sources update:
+The latest full pipeline run completed on 2026-10-29 local time. All eight reviewed adapters
+succeeded; the remaining 100 registry entries were not contacted. Counts and run identifier change
+as sources update:
 
 ```text
 Job pipeline summary (dry run; no applications submitted):
@@ -145,18 +148,18 @@ sources_skipped: 100
 source_registry_status_counts: {'needs_review': 100, 'verified': 8}
 source_failures: []
 source_skipped_details: []
-source_counts: {'arbeitnow': 300, 'Canonical Careers': 314, 'Elastic Careers': 408, 'GitLab Careers': 234, 'Jobicy': 200, 'remoteok': 99, 'remotive': 11, 'We Work Remotely': 96}
-discovered: 1662
+source_counts: {'arbeitnow': 300, 'Canonical Careers': 314, 'Elastic Careers': 408, 'GitLab Careers': 234, 'Jobicy': 600, 'remoteok': 99, 'remotive': 11, 'We Work Remotely': 96}
+discovered: 2062
 deduplicated: 377
-stale: 188
-ineligible: 733
-unknown_eligibility: 464
-qualified_by_tier: {'90_plus_review': 0, '95_plus_priority': 0, 'excluded': 1081, 'needs_verification': 204}
+stale: 548
+ineligible: 871
+unknown_eligibility: 688
+qualified_by_tier: {'90_plus_review': 0, '95_plus_priority': 0, 'excluded': 1481, 'needs_verification': 204}
 documents_generated: 0
 errors: 0
 dry_run: True
 profile_version: [local profile fingerprint omitted]
-run_id: 20261028T202904Z-5dbaecf2
+run_id: 20261028T210433Z-81ddb003
 document_errors: []
 ```
 
@@ -178,7 +181,8 @@ updates a candidate-confirmed application record; it does not submit anything.
 - RemoteOK's listing API exposes an original `date`; at the validation check it returned 99
   records but none within the configured 24-hour window. Its reports retain the source link and
   attribution.
-- Jobicy's public API only returns jobs published during the preceding seven days; its public
+- Jobicy's public API only returns jobs published during the preceding seven days; the adapter
+  follows at most three cursor pages (600 records) with a one-second inter-page delay. Its public
   `url` points to the Jobicy listing, and source attribution/linking is retained. The API does not
   provide a direct employer application URL without an optional paid API key, which this project
   does not use.
@@ -209,12 +213,12 @@ updates a candidate-confirmed application record; it does not submit anything.
 
 ## Validation report
 
-- `python -m pytest -q`: **115 passed**.
-- Live adapter checks on 2026-10-29: Jobicy **PASS** (200 records; 200 valid) and We Work Remotely
+- `python -m pytest -q`: **117 passed**.
+- Live adapter checks on 2026-10-29: Jobicy **PASS** (600 records; 600 valid) and We Work Remotely
   **PASS** (96 records; 96 valid). These are source checks, not a full pipeline run or application
   submissions.
 - Full live dry run on 2026-10-29: **8 sources succeeded, 0 partial, 0 failed; 100 unreviewed sources
-  skipped; 1,662 discovered; 377 deduplicated; 0 jobs qualified for review; 0 documents generated;
+  skipped; 2,062 discovered; 377 deduplicated; 0 jobs qualified for review; 0 documents generated;
   0 errors; no applications submitted.**
 - The earlier repeatability check was completed before Jobicy and We Work Remotely were enabled.
   Fixture acceptance tests prove first-seen timestamps and artifact records remain idempotent on

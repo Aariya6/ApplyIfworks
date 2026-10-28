@@ -44,6 +44,77 @@ def test_jobicy_public_api_normalizes_documented_fields(monkeypatch):
     assert pipeline.normalize_job(job, "Jobicy", "https://jobicy.com/api/jobs").posted_date_source == "pubDate"
 
 
+def test_jobicy_follows_cursor_within_configured_page_cap(monkeypatch):
+    seen_urls = []
+    delays = []
+    payloads = [
+        {
+            "jobs": [
+                {
+                    "id": 1,
+                    "jobTitle": "First role",
+                    "companyName": "Example",
+                    "jobGeo": "Anywhere",
+                    "url": "https://jobicy.com/jobs/1",
+                }
+            ],
+            "nextCursor": "cursor with spaces",
+        },
+        {
+            "jobs": [
+                {
+                    "id": 2,
+                    "jobTitle": "Second role",
+                    "companyName": "Example",
+                    "jobGeo": "Anywhere",
+                    "url": "https://jobicy.com/jobs/2",
+                }
+            ],
+            "nextCursor": "third-page-cursor",
+        },
+    ]
+
+    def fake_get(url, **kwargs):
+        seen_urls.append(url)
+        assert kwargs["timeout"] == 8
+        payload = payloads[len(seen_urls) - 1]
+        return SimpleNamespace(json=lambda: payload, raise_for_status=lambda: None)
+
+    monkeypatch.setattr("app.adapters.feeds.requests.get", fake_get)
+    monkeypatch.setattr("app.adapters.feeds.time.sleep", delays.append)
+    jobs = Jobicy().fetch(
+        {
+            "url": "https://jobicy.com/api/jobs?count=1",
+            "max_pages": 2,
+            "page_delay_seconds": 0.25,
+        }
+    )
+
+    assert [job.title for job in jobs] == ["First role", "Second role"]
+    assert seen_urls == [
+        "https://jobicy.com/api/jobs?count=1",
+        "https://jobicy.com/api/jobs?count=1&cursor=cursor+with+spaces",
+    ]
+    assert delays == [0.25]
+
+
+def test_jobicy_stops_on_repeated_cursor(monkeypatch):
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        return SimpleNamespace(
+            json=lambda: {"jobs": [], "nextCursor": "repeat"},
+            raise_for_status=lambda: None,
+        )
+
+    monkeypatch.setattr("app.adapters.feeds.requests.get", fake_get)
+    monkeypatch.setattr("app.adapters.feeds.time.sleep", lambda _seconds: None)
+    Jobicy().fetch({"url": "https://jobicy.com/api/jobs?count=1", "max_pages": 5})
+
+    assert len(calls) == 2
+
+
 def test_weworkremotely_rss_preserves_employer_posting_and_source_link(monkeypatch):
     xml = """<?xml version="1.0"?>
     <rss><channel><item>

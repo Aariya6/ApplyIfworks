@@ -20,6 +20,8 @@ sources:
     capability: PUBLIC_API
     access_method: official_public_api
     url: https://jobicy.com/api/jobs?count=200
+    max_pages: 3
+    page_delay_seconds: 1
   "we work remotely":
     enabled: true
     adapter: weworkremotely

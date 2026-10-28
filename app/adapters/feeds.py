@@ -1,5 +1,7 @@
 import requests, re
+import time
 import xml.etree.ElementTree as ET
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from .base import SourceAdapter, clean_html
 from ..models import Job
 
@@ -42,43 +44,70 @@ class Remotive(SourceAdapter):
 class Jobicy(SourceAdapter):
     name="jobicy"
     def fetch(self, config):
-        data=req(config["url"]).json()
+        base_url=config["url"]
+        max_pages=max(1,int(config.get("max_pages",3)))
+        page_delay=max(0.0,float(config.get("page_delay_seconds",1.0)))
         out=[]
-        for item in data.get("jobs",[]):
-            title=item.get("jobTitle","").strip()
-            company=item.get("companyName","").strip()
-            url=item.get("url","").strip()
-            if not title or not company or not url:
-                continue
-            location=item.get("jobGeo","")
-            job_types=item.get("jobType") or []
-            employment=", ".join(job_types) if isinstance(job_types,list) else str(job_types)
-            salary_min=item.get("salaryMin")
-            salary_max=item.get("salaryMax")
-            salary_currency=item.get("salaryCurrency","")
-            salary_period=item.get("salaryPeriod","")
-            salary=""
-            if salary_min is not None or salary_max is not None:
-                salary_range=" - ".join(str(value) for value in (salary_min,salary_max) if value is not None)
-                salary=" ".join(value for value in (salary_currency,salary_range,salary_period) if value)
-            raw={**item,"id":item.get("id"),"url":url,"pubDate":item.get("pubDate","")}
-            out.append(Job(
-                Job.stable_id(company,title,location,url),
-                title,
-                company,
-                location,
-                "remote",
-                employment or "unknown",
-                item.get("pubDate",""),
-                clean_html(item.get("jobDescription","")),
-                self.name,
-                url,
-                url,
-                salary,
-                "unknown",
-                raw,
-            ))
+        cursor=None
+        seen_cursors=set()
+        for page_index in range(max_pages):
+            page_url=_jobicy_page_url(base_url,cursor)
+            data=req(page_url).json()
+            if not isinstance(data,dict) or not isinstance(data.get("jobs"),list):
+                raise ValueError("Jobicy API response did not contain a jobs list")
+            for item in data["jobs"]:
+                if not isinstance(item,dict):
+                    continue
+                title=str(item.get("jobTitle") or "").strip()
+                company=str(item.get("companyName") or "").strip()
+                url=str(item.get("url") or "").strip()
+                if not title or not company or not url:
+                    continue
+                location=str(item.get("jobGeo") or "")
+                job_types=item.get("jobType") or []
+                employment=", ".join(str(value) for value in job_types) if isinstance(job_types,list) else str(job_types)
+                salary_min=item.get("salaryMin")
+                salary_max=item.get("salaryMax")
+                salary_currency=str(item.get("salaryCurrency") or "")
+                salary_period=str(item.get("salaryPeriod") or "")
+                salary=""
+                if salary_min is not None or salary_max is not None:
+                    salary_range=" - ".join(str(value) for value in (salary_min,salary_max) if value is not None)
+                    salary=" ".join(value for value in (salary_currency,salary_range,salary_period) if value)
+                raw={**item,"id":item.get("id"),"url":url,"pubDate":item.get("pubDate","")}
+                out.append(Job(
+                    Job.stable_id(company,title,location,url),
+                    title,
+                    company,
+                    location,
+                    "remote",
+                    employment or "unknown",
+                    item.get("pubDate",""),
+                    clean_html(item.get("jobDescription","")),
+                    self.name,
+                    url,
+                    url,
+                    salary,
+                    "unknown",
+                    raw,
+                ))
+            next_cursor=data.get("nextCursor")
+            if not next_cursor or page_index + 1 >= max_pages or next_cursor in seen_cursors:
+                break
+            seen_cursors.add(next_cursor)
+            cursor=next_cursor
+            if page_delay:
+                time.sleep(page_delay)
         return out
+
+
+def _jobicy_page_url(url, cursor=None):
+    if not cursor:
+        return url
+    parsed=urlsplit(url)
+    query=dict(parse_qsl(parsed.query,keep_blank_values=True))
+    query["cursor"]=cursor
+    return urlunsplit((parsed.scheme,parsed.netloc,parsed.path,urlencode(query),parsed.fragment))
 
 class WeWorkRemotelyRSS(SourceAdapter):
     name="weworkremotely"
