@@ -18,6 +18,7 @@ from .ats_capabilities import ATS_CAPABILITIES
 from .tailor import tailor
 from .apply import apply_job
 from .rate_limit import assert_can_submit
+from .regions import job_matches_region, job_remote_from_india, normalize_region
 
 # Only ATS integrations this project has a direct, tested fill/submit path for -- i.e. the
 # DIRECT tier in ats_capabilities.py, never the DISCOVERY_ONLY/REVIEW tier (workday, icims,
@@ -36,12 +37,18 @@ def _already_applied(job_id):
     return bool(a and a.get("status") in _DONE_STATUSES)
 
 
-def eligible_jobs(limit=200):
+def eligible_jobs(limit=200, country=None, remote_from_india=False):
     """QUALIFIED/TRANSFERABLE jobs on an ATS we can actually automate, with a real apply URL,
     not already applied to. Ordered by fit_score (db.jobs() default order), so the strongest
     matches get tried first when count is smaller than the eligible pool."""
+    if country is not None:
+        country = normalize_region(country)
     out = []
     for j in jobs(3000):
+        if country and not job_matches_region(j, country):
+            continue
+        if remote_from_india and not job_remote_from_india(j):
+            continue
         if j.get("fit_tier") not in {"QUALIFIED", "TRANSFERABLE"}:
             continue
         if (j.get("ats") or "").lower() not in _AUTOMATABLE_ATS:
@@ -56,7 +63,7 @@ def eligible_jobs(limit=200):
     return out
 
 
-def run_batch(count, real_apply=False):
+def run_batch(count, real_apply=False, country=None, remote_from_india=False):
     """Attempt up to `count` applications. In real_apply mode, generates the per-job
     CONFIRM-{job_id} token itself -- the batch call as a whole is the explicit authorization;
     per-job tokens exist to stop a single stray/scripted call, not to gate a deliberately
@@ -69,7 +76,11 @@ def run_batch(count, real_apply=False):
     target_field = "submitted" if real_apply else "dry_run"
     # Overshoot the candidate pool: not every attempt ends in the target_field bucket (some need
     # a human, some fail, some already got applied to between listing and attempting).
-    candidates = eligible_jobs(limit=max(count * 4, count + 20))
+    candidates = eligible_jobs(
+        limit=max(count * 4, count + 20),
+        country=country,
+        remote_from_india=remote_from_india,
+    )
     for job in candidates:
         if results[target_field] >= count:
             break

@@ -166,10 +166,13 @@ def _fill_reusable_qna(page, questions, profile):
             except Exception: pass
     return filled
 
-def mark_applied_manual(job_id,notes=""):
+def mark_applied_manual(job_id,notes="",source_channel=""):
     """Record that the person applied themselves through the official link. No automation
     touched the target site for this submission — that honesty is the whole point of the
-    distinction from SUBMITTED_CONFIRMED/AUTOMATED."""
+    distinction from SUBMITTED_CONFIRMED/AUTOMATED. source_channel (FP06) records which route
+    actually produced this application -- application, referral, recruiter search, direct
+    outreach, event, portfolio, open source, other -- so track_analytics can report real
+    channel-level conversion instead of a guess."""
     job=get_job(job_id)
     if not job: raise ValueError("Unknown job")
     aid=create_application(job_id)
@@ -180,7 +183,7 @@ def mark_applied_manual(job_id,notes=""):
     r=_resume_candidates(aid); r=r[-1] if r else None
     rh=hashlib.sha256(r.read_bytes()).hexdigest() if r else None
     update_application(aid,submitted_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        application_method="MANUAL_OFFICIAL_LINK",notes=notes,
+        application_method="MANUAL_OFFICIAL_LINK",notes=notes,source_channel=source_channel,
         submitted_resume_version=r.parent.name if r else None,submitted_resume_hash=rh,submitted_resume_filename=r.name if r else None)
     log_event(aid,"SUBMITTED_MANUAL",notes or "marked applied via official link")
     return {"status":"SUBMITTED_MANUAL","application_id":aid}

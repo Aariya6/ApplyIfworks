@@ -35,17 +35,10 @@ def _attr(node, names):
 
 
 def _fetch_job_detail_text(url,p):
-    """Best-effort: follow a matched job link and extract real page text for the description,
-    instead of leaving the caller to repeat the link's own title text. Tries JSON-LD JobPosting
-    first (many individual job pages carry it even when the listing page doesn't), falling back
-    to the page's main textual content. Never raises -- a failed detail fetch just means the
-    caller falls back to the title, same as before this existed."""
-    try:
-        r=requests.get(url,headers={"User-Agent":UA,"Accept-Language":"en-US,en;q=0.9"},timeout=float(p.get("timeout",15)),allow_redirects=True)
-        r.raise_for_status()
-        soup=BeautifulSoup(r.text,"html.parser")
-    except Exception:
-        return None
+    """Fetch and extract real description text from a matched job detail page."""
+    r=requests.get(url,headers={"User-Agent":UA,"Accept-Language":"en-US,en;q=0.9"},timeout=float(p.get("timeout",15)),allow_redirects=True)
+    r.raise_for_status()
+    soup=BeautifulSoup(r.text,"html.parser")
     for x in _jsonld(soup):
         desc=clean_html(BeautifulSoup(str(x.get("description","")),"html.parser").get_text(" "))
         if desc: return desc[:8000]
@@ -90,10 +83,15 @@ def _salary(v):
 class CatalogHTML(SourceAdapter):
     name="catalog_html"
     def fetch(self, config):
+        jobs, _failures = self.fetch_report(config)
+        return jobs
+
+    def fetch_report(self, config):
         out=[]
+        self.failures=[]
         for profile in config.get("sites",[]):
             out.extend(self._site(profile))
-        return out
+        return self._dedupe(out), list(self.failures)
 
     def _site(self, p):
         if p.get("access_mode")=="LINK_ONLY": return []
@@ -105,21 +103,28 @@ class CatalogHTML(SourceAdapter):
         for _ in range(max_pages):
             if not next_url or next_url in seen_pages: break
             seen_pages.add(next_url)
-            page_jobs, next_url=self._parse_page(p,next_url)
+            try:
+                page_jobs, next_url=self._parse_page(p,next_url)
+            except Exception as exc:
+                self.failures.append({
+                    "profile": str(p.get("name", "unknown")),
+                    "error_type": type(exc).__name__,
+                })
+                break
             jobs.extend(page_jobs)
         return self._dedupe(jobs)
 
     def _parse_page(self,p,url):
-        try:
-            r=requests.get(url,headers={"User-Agent":UA,"Accept-Language":"en-US,en;q=0.9"},timeout=float(p.get("timeout",20)),allow_redirects=True)
-            r.raise_for_status()
-            soup=BeautifulSoup(r.text,"html.parser")
-        except Exception:
-            return [], None
+        r=requests.get(url,headers={"User-Agent":UA,"Accept-Language":"en-US,en;q=0.9"},timeout=float(p.get("timeout",20)),allow_redirects=True)
+        r.raise_for_status()
+        soup=BeautifulSoup(r.text,"html.parser")
         jobs=[]
         for x in _jsonld(soup):
             title=clean_html(str(x.get("title", "")))
             if not title: continue
+            desc=clean_html(BeautifulSoup(str(x.get("description","")),"html.parser").get_text(" "))
+            if not desc:
+                continue
             company=x.get("hiringOrganization",{})
             company=company.get("name","") if isinstance(company,dict) else str(company)
             loc=x.get("jobLocation","")
@@ -128,7 +133,6 @@ class CatalogHTML(SourceAdapter):
                 loc=loc.get("address",loc)
                 loc=loc.get("addressLocality","") if isinstance(loc,dict) else str(loc)
             apply_url=x.get("url") or x.get("sameAs") or r.url
-            desc=clean_html(BeautifulSoup(str(x.get("description","")),"html.parser").get_text(" "))
             remote="remote" if re.search(r"remote|telecommut", desc+" "+str(loc), re.I) else "unknown"
             jobs.append(self._job(p,title,company,str(loc),desc,apply_url,_salary(x.get("baseSalary")),{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML"),"jsonld":x},r.url,remote))
         if not jobs:
@@ -145,8 +149,11 @@ class CatalogHTML(SourceAdapter):
                 company=_text(_first(card,p.get("company_selectors",[]))) or p.get("default_company","")
                 loc=_text(_first(card,p.get("location_selectors",[])))
                 sal=_text(_first(card,p.get("salary_selectors",[])))
+                description=_text(card)
+                if len(description) < 40 or description.casefold() == title.casefold():
+                    continue
                 remote="remote" if re.search(r"remote|work from anywhere|distributed",blob,re.I) else "unknown"
-                jobs.append(self._job(p,title,company,loc,_text(card),href,sal,{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,remote))
+                jobs.append(self._job(p,title,company,loc,description,href,sal,{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,remote))
         if not jobs:
             pats=p.get("link_patterns",[r"/job",r"/jobs/",r"/careers/",r"/position",r"/vacanc"])
             candidates=[]
@@ -162,10 +169,17 @@ class CatalogHTML(SourceAdapter):
             # career page with hundreds of links doesn't trigger hundreds of extra requests.
             max_detail_fetches=int(p.get("max_detail_fetches",15))
             for title,href in candidates[:max_detail_fetches]:
-                desc=_fetch_job_detail_text(href,p) or title
+                try:
+                    desc=_fetch_job_detail_text(href,p)
+                except Exception as exc:
+                    self.failures.append({
+                        "profile": str(p.get("name", "unknown")),
+                        "error_type": type(exc).__name__,
+                    })
+                    continue
+                if not desc or len(desc.strip()) < 40 or desc.strip().casefold() == title.casefold():
+                    continue
                 jobs.append(self._job(p,title,p.get("default_company","") ,"",desc,href,"",{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,"unknown"))
-            for title,href in candidates[max_detail_fetches:]:
-                jobs.append(self._job(p,title,p.get("default_company","") ,"",title,href,"",{"source_profile":p.get("name"),"category":p.get("category",""),"access_mode":p.get("access_mode","PUBLIC_HTML")},r.url,"unknown"))
         nxt=None
         for sel in p.get("next_selectors",['a[rel="next"]','a.next','a[aria-label*="Next"]']):
             a=soup.select_one(sel)

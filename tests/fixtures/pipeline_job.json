@@ -1,0 +1,22 @@
+{
+  "id": "fixture-job-001",
+  "title": "Junior Python Engineer",
+  "company": "Example Research",
+  "location": "Fully remote; worldwide including India",
+  "remote": "Fully remote",
+  "employment": "Contractor",
+  "posted_at": "2026-10-28T00:00:00Z",
+  "description": "Fully remote worldwide including India. International contractors welcome. Python experience preferred. Paid role with flexible hours.",
+  "source": "greenhouse",
+  "discovery_url": "https://boards.greenhouse.io/example/jobs/123",
+  "apply_url": "https://boards.greenhouse.io/example/jobs/123",
+  "salary": "EUR 40,000-50,000",
+  "ats": "greenhouse",
+  "raw": {
+    "id": "fixture-job-001",
+    "requisition_id": "REQ-123",
+    "published_at": "2026-10-28T00:00:00Z",
+    "applicant_count": 4,
+    "description": "Fully remote worldwide including India. International contractors welcome. Python experience preferred. Paid role with flexible hours."
+  }
+}

@@ -67,3 +67,67 @@ def test_catalog_html_jsonld_extraction():
         assert len(jobs)==1 and jobs[0].title=='AI Engineer' and jobs[0].company=='Acme'
     finally:
         requests.get=old
+
+def test_catalog_html_does_not_create_title_only_jobs(monkeypatch):
+    import requests
+    from app.adapters.catalog_html import CatalogHTML
+
+    responses = {
+        "https://example.com/jobs": "<html><a href='/jobs/1'>Python Engineer</a></html>",
+        "https://example.com/jobs/1": "<html><h1>Python Engineer</h1></html>",
+    }
+
+    class Response:
+        def __init__(self, url):
+            self.url = url
+            self.text = responses[url]
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(requests, "get", lambda url, **_kwargs: Response(url))
+    jobs, failures = CatalogHTML().fetch_report(
+        {"sites": [{"name": "Fixture", "url": "https://example.com/jobs", "max_detail_fetches": 1}]}
+    )
+    assert jobs == []
+    assert failures == []
+
+def test_catalog_html_reports_page_and_detail_failures(monkeypatch):
+    import requests
+    from app.adapters.catalog_html import CatalogHTML
+
+    listing = "<html><a href='/jobs/1'>Python Engineer</a></html>"
+
+    class Response:
+        url = "https://example.com/jobs"
+        text = listing
+
+        def raise_for_status(self):
+            pass
+
+    calls = []
+
+    def fail_detail(url, **_kwargs):
+        calls.append(url)
+        if url.endswith("/jobs"):
+            return Response()
+        raise requests.Timeout("fixture timeout")
+
+    monkeypatch.setattr(requests, "get", fail_detail)
+    jobs, failures = CatalogHTML().fetch_report(
+        {"sites": [{"name": "Fixture", "url": "https://example.com/jobs", "max_detail_fetches": 1}]}
+    )
+    assert jobs == []
+    assert failures == [{"profile": "Fixture", "error_type": "Timeout"}]
+    assert calls == ["https://example.com/jobs", "https://example.com/jobs/1"]
+
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(requests.HTTPError("fixture HTTP failure")),
+    )
+    jobs, failures = CatalogHTML().fetch_report(
+        {"sites": [{"name": "Fixture", "url": "https://example.com/jobs"}]}
+    )
+    assert jobs == []
+    assert failures == [{"profile": "Fixture", "error_type": "HTTPError"}]

@@ -2,14 +2,14 @@ from pathlib import Path
 import yaml, json, datetime
 from concurrent.futures import ThreadPoolExecutor
 from ..db import upsert_job, save_source_health, find_job_identity, update_job_fit
-from ..adapters.router import run_source
+from ..adapters.router import run_source_report
 from .scoring import score_job, fit_tier
 from .job_intelligence import work_auth,eligibility_for_india,extract_salary,infer_country,country_fit
 from .eligibility import assess_eligibility
 ROOT = Path(__file__).resolve().parents[2]
 
 def _run_one(name, cfg):
-    return run_source(name, cfg)
+    return run_source_report(name, cfg)
 
 def _enabled_sources(cfg):
     out=[]
@@ -35,7 +35,7 @@ def discover():
         future_map = {name: (ex.submit(_run_one,name,c), c) for name,c in enabled}
         for name,(future,c) in future_map.items():
             try:
-                found = future.result(timeout=float(c.get("run_timeout_seconds",c.get("timeout",20))))
+                found, adapter_failures = future.result(timeout=float(c.get("run_timeout_seconds",c.get("timeout",20))))
                 seen=set(); good_jd=good_apply=0
                 for j in found:
                     existing=find_job_identity(j.company,j.title,j.location)
@@ -46,7 +46,19 @@ def discover():
                     try: update_job_fit(j.id, fit_tier(score,fam,reasons), assess_eligibility(d,profile))
                     except Exception: pass
                 total += len(found)
-                save_source_health(name,capability=c.get("capability","UNKNOWN"),search_supported=1,jd_supported=int(bool(found) and good_jd>0),application_url_supported=int(bool(found) and good_apply>0),last_tested=datetime.datetime.now(datetime.timezone.utc).isoformat(),status="PASS" if found and good_jd and good_apply else ("PARTIAL" if found else "ZERO_RESULT"),failure_reason="" if found else "No jobs returned",jobs_found=len(found),jd_success_rate=(good_jd/len(found)*100 if found else 0),application_success_rate=(good_apply/len(found)*100 if found else 0),duplicate_rate=((len(found)-len(seen))/len(found)*100 if found else 0))
+                failure_reason="; ".join(
+                    f"{failure.get('company', failure.get('profile', name))}:{failure.get('error_type', 'source failure')}"
+                    for failure in adapter_failures
+                )
+                if failure_reason:
+                    errors.append((name, failure_reason))
+                status=(
+                    "FAIL" if adapter_failures and not found
+                    else "PARTIAL" if adapter_failures or (found and not (good_jd and good_apply))
+                    else "PASS" if found
+                    else "ZERO_RESULT"
+                )
+                save_source_health(name,capability=c.get("capability","UNKNOWN"),search_supported=1,jd_supported=int(bool(found) and good_jd>0),application_url_supported=int(bool(found) and good_apply>0),last_tested=datetime.datetime.now(datetime.timezone.utc).isoformat(),status=status,failure_reason=failure_reason or ("" if found else "No jobs returned"),jobs_found=len(found),jd_success_rate=(good_jd/len(found)*100 if found else 0),application_success_rate=(good_apply/len(found)*100 if found else 0),duplicate_rate=((len(found)-len(seen))/len(found)*100 if found else 0))
             except Exception as e:
                 errors.append((name,str(e))); save_source_health(name,capability=c.get("capability","UNKNOWN"),last_tested=datetime.datetime.now(datetime.timezone.utc).isoformat(),status="FAIL",failure_reason=str(e))
     return total, errors

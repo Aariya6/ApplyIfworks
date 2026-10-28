@@ -14,6 +14,18 @@ sources:
     adapter: remotive
     capability: LIVE_API
     url: https://remotive.com/api/remote-jobs
+  jobicy:
+    enabled: true
+    adapter: jobicy
+    capability: PUBLIC_API
+    access_method: official_public_api
+    url: https://jobicy.com/api/jobs?count=200
+  "we work remotely":
+    enabled: true
+    adapter: weworkremotely
+    capability: PUBLIC_RSS
+    access_method: public_rss
+    url: https://weworkremotely.com/remote-jobs.rss
   greenhouse:
     enabled: true
     adapter: greenhouse
@@ -79,14 +91,7 @@ sources:
     - name: We Work Remotely
       url: https://weworkremotely.com/remote-jobs
       category: remote_board
-      card_selectors:
-      - li.feature
-      - section.job
-      - article
-      title_selectors:
-      - h2
-      - h3
-      - a
+      access_mode: LINK_ONLY
     - name: Wellfound
       url: https://wellfound.com/jobs
       category: startup
@@ -132,9 +137,7 @@ sources:
     - name: Jobicy
       url: https://jobicy.com/jobs
       category: remote_board
-      link_patterns:
-      - /jobs/
-      - /job/
+      access_mode: LINK_ONLY
     - name: Dynamite Jobs
       url: https://dynamitejobs.com/
       category: remote_board

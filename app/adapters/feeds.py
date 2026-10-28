@@ -14,8 +14,9 @@ class RemoteOK(SourceAdapter):
         data=req(config["url"]).json(); out=[]
         for x in data if isinstance(data,list) else []:
             if not x.get("position"): continue
-            title=x.get("position",""); company=x.get("company",""); url=x.get("url") or x.get("apply_url") or ""
-            out.append(Job(Job.stable_id(company,title,x.get("location", "Remote"),url),title,company,x.get("location","Remote"),"remote","full-time",x.get("date",""),clean_html(x.get("description","")),self.name,url,url,x.get("salary", ""),"unknown",x))
+            title=x.get("position",""); company=x.get("company",""); url=x.get("url") or ""
+            apply_url=x.get("apply_url") or ""
+            out.append(Job(Job.stable_id(company,title,x.get("location", "Remote"),url),title,company,x.get("location","Remote"),"remote","full-time",x.get("date",""),clean_html(x.get("description","")),self.name,url,apply_url,x.get("salary", ""),"unknown",x))
         return out
 
 class ArbeitNow(SourceAdapter):
@@ -38,6 +39,96 @@ class Remotive(SourceAdapter):
             out.append(Job(Job.stable_id(company,title,loc,url),title,company,loc,"remote","full-time",x.get("publication_date",""),clean_html(x.get("description","")),self.name,url,url,x.get("salary", ""),"unknown",x))
         return out
 
+class Jobicy(SourceAdapter):
+    name="jobicy"
+    def fetch(self, config):
+        data=req(config["url"]).json()
+        out=[]
+        for item in data.get("jobs",[]):
+            title=item.get("jobTitle","").strip()
+            company=item.get("companyName","").strip()
+            url=item.get("url","").strip()
+            if not title or not company or not url:
+                continue
+            location=item.get("jobGeo","")
+            job_types=item.get("jobType") or []
+            employment=", ".join(job_types) if isinstance(job_types,list) else str(job_types)
+            salary_min=item.get("salaryMin")
+            salary_max=item.get("salaryMax")
+            salary_currency=item.get("salaryCurrency","")
+            salary_period=item.get("salaryPeriod","")
+            salary=""
+            if salary_min is not None or salary_max is not None:
+                salary_range=" - ".join(str(value) for value in (salary_min,salary_max) if value is not None)
+                salary=" ".join(value for value in (salary_currency,salary_range,salary_period) if value)
+            raw={**item,"id":item.get("id"),"url":url,"pubDate":item.get("pubDate","")}
+            out.append(Job(
+                Job.stable_id(company,title,location,url),
+                title,
+                company,
+                location,
+                "remote",
+                employment or "unknown",
+                item.get("pubDate",""),
+                clean_html(item.get("jobDescription","")),
+                self.name,
+                url,
+                url,
+                salary,
+                "unknown",
+                raw,
+            ))
+        return out
+
+class WeWorkRemotelyRSS(SourceAdapter):
+    name="weworkremotely"
+    def fetch(self, config):
+        root=ET.fromstring(req(config["url"]).text)
+        out=[]
+        for item in root.findall(".//item"):
+            feed_title=(item.findtext("title") or "").strip()
+            url=(item.findtext("link") or "").strip()
+            if not feed_title or not url:
+                continue
+            company,title=feed_title,""
+            if ": " in feed_title:
+                company,title=feed_title.split(": ",1)
+            else:
+                title=feed_title
+            region=(item.findtext("region") or "").strip()
+            country=(item.findtext("country") or "").strip()
+            state=(item.findtext("state") or "").strip()
+            location=", ".join(value for value in (region,state,country) if value)
+            employment=(item.findtext("type") or "").strip() or "unknown"
+            description=clean_html(item.findtext("description") or "")
+            raw={
+                "title":title,
+                "feed_title":feed_title,
+                "company":company,
+                "url":url,
+                "pubDate":(item.findtext("pubDate") or "").strip(),
+                "region":region,
+                "country":country,
+                "state":state,
+            }
+            out.append(Job(
+                Job.stable_id(company,title,location,url),
+                title,
+                company,
+                location,
+                "remote",
+                employment,
+                raw["pubDate"],
+                description,
+                self.name,
+                url,
+                url,
+                "",
+                "unknown",
+                raw,
+            ))
+        return out
+
 class RSS(SourceAdapter):
     name="rss"
     def fetch(self, config):
@@ -48,5 +139,5 @@ class RSS(SourceAdapter):
             for item in root.findall('.//item'):
                 title=(item.findtext('title') or '').strip(); link=(item.findtext('link') or '').strip(); desc=clean_html(item.findtext('description') or ''); company=''
                 pub=(item.findtext('pubDate') or '').strip()
-                out.append(Job(Job.stable_id(company,title,"",link),title,company,"","remote","unknown",pub,desc,self.name,url,link,"","unknown",{}))
+                out.append(Job(Job.stable_id(company,title,"",link),title,company,"","remote","unknown",pub,desc,self.name,url,link,"","unknown",{"pubDate":pub}))
         return out

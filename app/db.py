@@ -65,7 +65,8 @@ def conn():
         if name not in cols: c.execute(f"ALTER TABLE jobs ADD COLUMN {name} {typ} DEFAULT {default}")
     acols={r[1] for r in c.execute("PRAGMA table_info(applications)").fetchall()}
     for name,typ,default in [("submitted_resume_version","TEXT","NULL"),("submitted_resume_hash","TEXT","NULL"),("submitted_resume_filename","TEXT","NULL"),("application_method","TEXT","''"),
-        ("human_required_reason","TEXT","NULL"),("automation_level","TEXT","NULL"),("personalization_level","TEXT","NULL"),("outcome_updated_at","TEXT","NULL")]:
+        ("human_required_reason","TEXT","NULL"),("automation_level","TEXT","NULL"),("personalization_level","TEXT","NULL"),("outcome_updated_at","TEXT","NULL"),
+        ("source_channel","TEXT","''"),("rejection_reason","TEXT","''")]:
         if name not in acols: c.execute(f"ALTER TABLE applications ADD COLUMN {name} {typ} DEFAULT {default}")
     ccols={r[1] for r in c.execute("PRAGMA table_info(companies)").fetchall()}
     for name,typ,default in [("company_fit_detail","TEXT","NULL"),
@@ -146,7 +147,7 @@ def create_application(job_id):
 
 def update_application(aid,**fields):
     if not fields:return
-    allowed={"status","resume_version","resume_hash","letter_version","updated_at","submitted_at","evidence_path","notes","submitted_resume_version","submitted_resume_hash","submitted_resume_filename","application_method","human_required_reason","automation_level","personalization_level","outcome_updated_at"}
+    allowed={"status","resume_version","resume_hash","letter_version","updated_at","submitted_at","evidence_path","notes","submitted_resume_version","submitted_resume_hash","submitted_resume_filename","application_method","human_required_reason","automation_level","personalization_level","outcome_updated_at","source_channel","rejection_reason"}
     fields={k:v for k,v in fields.items() if k in allowed}; fields["updated_at"]=now(); c=conn(); sets=", ".join(f"{k}=?" for k in fields); vals=list(fields.values())+[aid]; c.execute(f"UPDATE applications SET {sets} WHERE id=?",vals); c.commit(); c.close()
 def get_application(aid):
     c=conn(); r=c.execute("SELECT * FROM applications WHERE id=?",(aid,)).fetchone(); c.close(); return dict(r) if r else None
@@ -155,6 +156,14 @@ def log_event(aid,event,detail=""):
     c=conn(); c.execute("INSERT INTO events(application_id,event,detail,created_at) VALUES (?,?,?,?)",(aid,event,detail,now())); c.commit(); c.close()
 def applications(limit=500):
     c=conn(); rows=c.execute("SELECT a.*,j.title,j.company,j.apply_url,j.source,j.fit_score,j.fit_tier,j.application_friction FROM applications a JOIN jobs j ON j.id=a.job_id ORDER BY a.updated_at DESC LIMIT ?",(limit,)).fetchall(); c.close(); return [dict(r) for r in rows]
+
+def applications_for_company(company_name):
+    """FP10: every application tied to this company, for a company relationship ledger --
+    long-term leverage comes from the accumulated history, not an isolated application."""
+    c=conn()
+    rows=c.execute("""SELECT a.*,j.title,j.fit_score,j.fit_tier FROM applications a JOIN jobs j ON j.id=a.job_id
+        WHERE lower(j.company)=lower(?) ORDER BY a.updated_at DESC""",(company_name,)).fetchall()
+    c.close(); return [dict(r) for r in rows]
 
 def set_daily_target(target):
     day=now()[:10]; c=conn()

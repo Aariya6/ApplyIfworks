@@ -70,7 +70,8 @@ def _aggregate(rows, key_fn):
 def _rows():
     c = conn()
     rows = c.execute(
-        """SELECT applications.status AS status, jobs.role_family AS role_family, jobs.country AS country
+        """SELECT applications.status AS status, jobs.role_family AS role_family, jobs.country AS country,
+                  applications.source_channel AS source_channel, applications.rejection_reason AS rejection_reason
            FROM applications JOIN jobs ON jobs.id = applications.job_id"""
     ).fetchall()
     c.close()
@@ -85,6 +86,29 @@ def track_performance_by_role_family():
 def track_performance_by_country():
     rows = _rows()
     return _aggregate(rows, lambda r: r["country"] or "unknown")
+
+
+def track_performance_by_channel():
+    """FP06: response-source attribution -- which actual route (application, referral,
+    recruiter search, direct outreach, event, portfolio, open source...) produced which
+    applications and what happened to them."""
+    rows = _rows()
+    return _aggregate(rows, lambda r: r["source_channel"] or "unspecified")
+
+
+def rejection_reasons_breakdown():
+    """FP13: normalized rejection reasons into counts -- a pattern across many outcomes is
+    informative, a single rejection is not; this only ever reports counts, never a verdict."""
+    rows = _rows()
+    counts = {}
+    for r in rows:
+        if r["status"] != "REJECTED":
+            continue
+        reason = r["rejection_reason"] or "unspecified"
+        counts[reason] = counts.get(reason, 0) + 1
+    out = [{"reason": k, "count": v} for k, v in counts.items()]
+    out.sort(key=lambda x: -x["count"])
+    return out
 
 
 def track_performance_summary():

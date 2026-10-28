@@ -7,7 +7,19 @@ from .services.company_registry import seed_registry
 
 def main():
     p=argparse.ArgumentParser(description="Remote Job Pilot - local-first job discovery and guarded application assistant")
-    sub=p.add_subparsers(dest="cmd"); sub.add_parser("init"); sub.add_parser("setup"); sub.add_parser("seed-qna"); sub.add_parser("discover"); sub.add_parser("score"); sub.add_parser("audit-sources"); sub.add_parser("audit-ats"); sub.add_parser("seed-companies"); sub.add_parser("web"); sub.add_parser("export"); sub.add_parser("company-fit"); sub.add_parser("skill-gaps"); q=sub.add_parser("inspect-resume"); q.add_argument("path")
+    sub=p.add_subparsers(dest="cmd"); sub.add_parser("init"); sub.add_parser("setup"); sub.add_parser("seed-qna"); sub.add_parser("discover",help="Run legacy discovery into the dashboard queue; use run for the reviewed pipeline"); sub.add_parser("score"); sub.add_parser("audit-sources"); sub.add_parser("audit-ats"); sub.add_parser("seed-companies"); sub.add_parser("web"); sub.add_parser("export"); sub.add_parser("company-fit"); sub.add_parser("skill-gaps"); q=sub.add_parser("inspect-resume"); q.add_argument("path")
+    q=sub.add_parser("run",help="Run the reviewed-source job intelligence pipeline (never submits applications)")
+    q.add_argument("--config",default="config/pipeline.yaml"); q.add_argument("--since-hours",type=float); q.add_argument("--min-score",type=float); q.add_argument("--priority-score",type=float); q.add_argument("--max-sources",type=int); q.add_argument("--max-jobs",type=int); q.add_argument("--concurrency",type=int); q.add_argument("--refresh-source"); q.add_argument("--export",dest="export_dir"); q.add_argument("--dry-run",action="store_true",default=True)
+    q=sub.add_parser("source-test",help="Test one source only when its terms are marked reviewed")
+    q.add_argument("source_name")
+    sub.add_parser("pipeline-health",help="Show the local pipeline adapter health report")
+    q=sub.add_parser("pipeline-tracker",help="List or update the local human-reviewed pipeline tracker")
+    q.add_argument("--status")
+    q.add_argument("--update-job")
+    q.add_argument("--set-status")
+    q.add_argument("--applied-at")
+    q.add_argument("--follow-up-date")
+    q.add_argument("--outcome")
     for c in ["tailor","letter"]:
         q=sub.add_parser(c); q.add_argument("job_id")
     q=sub.add_parser("apply"); q.add_argument("job_id"); q.add_argument("--dry-run",action="store_true"); q.add_argument("--real-apply",action="store_true")
@@ -15,7 +27,58 @@ def main():
     q=sub.add_parser("watch"); q.add_argument("--minutes",type=float,default=20)
     q=sub.add_parser("auto-apply"); q.add_argument("--count",type=int,default=50); q.add_argument("--real-apply",action="store_true")
     a=p.parse_args()
-    if a.cmd=="setup":
+    if a.cmd=="run":
+        from pathlib import Path
+        import yaml
+        from .services.pipeline import run_pipeline
+        config_path=Path(a.config)
+        config=yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+        defaults=config.get("pipeline",{})
+        result=run_pipeline(
+            since_hours=a.since_hours if a.since_hours is not None else float(defaults.get("since_hours",24)),
+            min_score=a.min_score if a.min_score is not None else float(defaults.get("min_score",90)),
+            priority_score=a.priority_score if a.priority_score is not None else float(defaults.get("priority_score",95)),
+            max_sources=a.max_sources if a.max_sources is not None else defaults.get("max_sources"),
+            max_jobs=a.max_jobs if a.max_jobs is not None else defaults.get("max_jobs"),
+            concurrency=a.concurrency if a.concurrency is not None else int(defaults.get("concurrency",1)),
+            requests_per_second=float(defaults.get("requests_per_second",1)),
+            refresh_source=a.refresh_source,
+            dry_run=a.dry_run,
+            export_dir=Path(a.export_dir) if a.export_dir else Path(config.get("export_dir","data/exports")),
+            registry_path=Path(config.get("source_registry","config/pipeline_sources.csv")),
+            profile_path=Path(config.get("profile","config/profile.json")),
+        )
+        print("Job pipeline summary (dry run; no applications submitted):")
+        for key,value in result.items():
+            print(f"{key}: {value}")
+    elif a.cmd=="source-test":
+        from .services.pipeline import test_source
+        print(test_source(a.source_name))
+    elif a.cmd=="pipeline-health":
+        from .services.pipeline import pipeline_health
+        rows=pipeline_health()
+        if not rows: print("No pipeline source checks recorded.")
+        for row in rows: print(row)
+    elif a.cmd=="pipeline-tracker":
+        import json
+        from .services.pipeline import pipeline_tracker, update_pipeline_tracker
+        changes=[a.set_status,a.applied_at,a.follow_up_date,a.outcome]
+        if a.update_job:
+            if not any(value is not None for value in changes):
+                p.error("pipeline-tracker --update-job requires at least one update field")
+            update_pipeline_tracker(
+                a.update_job,
+                status=a.set_status,
+                applied_at=a.applied_at,
+                follow_up_date=a.follow_up_date,
+                outcome=a.outcome,
+            )
+            print(f"Updated tracker record for {a.update_job}")
+        elif any(value is not None for value in changes):
+            p.error("pipeline-tracker update fields require --update-job")
+        else:
+            print(json.dumps(pipeline_tracker(a.status),indent=2,ensure_ascii=False))
+    elif a.cmd=="setup":
         from .services.setup import setup; print(setup())
     elif a.cmd=="seed-qna":
         from .services.qna import seed_qna; print(f"Seeded {seed_qna()} reusable answers")

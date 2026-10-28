@@ -1,0 +1,11 @@
+pipeline:
+  since_hours: 24
+  min_score: 90
+  priority_score: 95
+  concurrency: 1
+  requests_per_second: 1
+  max_sources: null
+  max_jobs: null
+source_registry: config/pipeline_sources.csv
+profile: config/profile.json
+export_dir: data/exports

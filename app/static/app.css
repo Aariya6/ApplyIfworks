@@ -73,6 +73,10 @@ label{font-size:13.5px;color:var(--cocoa)}
 table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--border-soft)}
 th,td{padding:13px 14px;border-bottom:1px solid var(--border-soft);text-align:left;vertical-align:top;font-size:13.5px}
 th{background:var(--card-warm);color:var(--cocoa);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+th[data-sort]:hover{color:var(--clay-deep)}
+th[data-sort]::after{content:'⇅';margin-left:5px;opacity:.45;font-size:10px}
+th.sorted-asc::after{content:'↑';opacity:.9}
+th.sorted-desc::after{content:'↓';opacity:.9}
 tr:hover td{background:#fbf6ec}
 
 pre{white-space:pre-wrap;background:var(--card);padding:20px;border-radius:14px;border:1px solid var(--border-soft);font-family:'Work Sans',sans-serif;font-size:13.5px;line-height:1.6;color:var(--espresso)}

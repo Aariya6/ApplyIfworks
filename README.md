@@ -46,6 +46,35 @@ skill, employer, metric, or certainty it doesn't have.
 - **Portfolio Project Engine**: tracks real GitHub project ideas against your own skill gaps,
   computed from real job-posting requirements.
 
+## Auditable job pipeline
+
+The additive pipeline uses a reviewed source registry, explicit publication-date and
+India-eligibility evidence, a transparent 100-point rubric, profile-grounded TXT/DOCX drafts,
+and local JSON/CSV/HTML reports. Six source records have been validated for public access and
+terms; all other source candidates remain `needs_review`. The pipeline never submits an
+application.
+
+```powershell
+python -m app.cli run --config config/pipeline.yaml --since-hours 24 --min-score 90 --dry-run
+python -m app.cli source-test remoteok
+python -m app.cli pipeline-health
+python -m app.cli pipeline-tracker
+```
+
+The web UI exposes the same reviewed-source run at **Pipeline** (`/pipeline`) and shows actual
+run totals, job assessments, source health, and the registry review status. The dashboard's queue
+is explicitly labeled as legacy data and is not presented as the latest reviewed-source run.
+Each pipeline run also exports an Excel workbook with `Run Summary`, `Jobs`, and `Sources` sheets.
+The **Ireland** and **Italy** tabs filter the shared application queue by country/city and include
+the 251 supplied links for each country as manual references; those links are not automatically
+scraped. Each tab also has a country-scoped batch action using the existing ATS, duplicate,
+CAPTCHA, and human-review safeguards. The Daily page's all-country batch can include qualified
+Ireland/Italy jobs in that shared queue; reviewed-pipeline-only records remain report/draft-only
+and are not silently promoted into application submissions.
+
+Review the source registry and full behavior, data flow, example output, limitations, and rollback
+steps in [docs/JOB_PIPELINE.md](docs/JOB_PIPELINE.md).
+
 ## Safety
 
 - Never uses your normal Chrome profile — an isolated profile under `data/browser-profile/` only.
@@ -77,7 +106,7 @@ cp .env.example .env
 
 python -m app.cli init
 python -m app.cli seed-qna
-python -m app.cli discover
+python -m app.cli run --dry-run
 python -m app.cli web
 ```
 
@@ -100,7 +129,8 @@ python -m app.cli init
 python -m app.cli setup
 python -m app.cli seed-qna
 python -m app.cli seed-companies
-python -m app.cli discover
+python -m app.cli run --dry-run
+python -m app.cli discover        # legacy queue discovery; separate from the reviewed pipeline
 python -m app.cli score
 python -m app.cli company-fit
 python -m app.cli skill-gaps
@@ -118,6 +148,10 @@ python -m app.cli export
 python -m app.cli web
 python -m pytest
 ```
+
+`python -m app.cli run` is the reviewed, terms-gated full pipeline and writes its own reports and
+tracker records. The older `discover` command populates the legacy dashboard queue and should not
+be used as evidence that the reviewed pipeline or every candidate source was checked.
 
 ## Discovery architecture
 
