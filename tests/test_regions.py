@@ -101,8 +101,8 @@ def test_region_batch_uses_existing_backend_with_region_and_remote_filter(monkey
 
     def fake_run_batch(count, **kwargs):
         calls["count"] = count
-        calls.update(kwargs)
-        return {
+        calls.update({key: value for key, value in kwargs.items() if key != "progress_callback"})
+        result = {
             "submitted": 0,
             "dry_run": count if not kwargs["real_apply"] else 0,
             "requires_human": 0,
@@ -111,6 +111,8 @@ def test_region_batch_uses_existing_backend_with_region_and_remote_filter(monkey
             "eligible_pool_checked": 2,
             "details": [{"status": "DRY_RUN", "company": "Example", "title": "Engineer"}],
         }
+        kwargs["progress_callback"](result, {"company": "Example", "title": "Engineer"})
+        return result
 
     monkeypatch.setattr(auto_apply, "run_batch", fake_run_batch)
     with TestClient(main.app) as client:
@@ -123,7 +125,8 @@ def test_region_batch_uses_existing_backend_with_region_and_remote_filter(monkey
             data={"count": 51, "mode": "dry_run", "filter_mode": "all"},
         )
     assert response.status_code == 200
-    assert "dry run" in response.text
+    assert "DRY RUN" in response.text
+    assert "Application batch results" in response.text
     assert calls == {
         "count": 50,
         "real_apply": False,
@@ -131,6 +134,69 @@ def test_region_batch_uses_existing_backend_with_region_and_remote_filter(monkey
         "remote_from_india": True,
     }
     assert too_many.status_code == 400
+
+
+def test_daily_batch_returns_results_and_rejects_invalid_requests(monkeypatch):
+    calls = {}
+
+    def fake_run_batch(count, **kwargs):
+        calls["count"] = count
+        calls["real_apply"] = kwargs["real_apply"]
+        result = {
+            "requested": count,
+            "submitted": 0,
+            "dry_run": count,
+            "requires_human": 0,
+            "failed": 0,
+            "cap_reached": False,
+            "eligible_pool_checked": count,
+            "details": [],
+        }
+        kwargs["progress_callback"](result, None)
+        return result
+
+    monkeypatch.setattr(auto_apply, "run_batch", fake_run_batch)
+    with TestClient(main.app) as client:
+        response = client.post(
+            "/daily/automate-apply",
+            data={"count": 1, "mode": "dry_run"},
+        )
+        invalid_count = client.post(
+            "/daily/automate-apply",
+            data={"count": 51, "mode": "dry_run"},
+        )
+        invalid_mode = client.post(
+            "/daily/automate-apply",
+            data={"count": 1, "mode": "anything"},
+        )
+
+    assert response.status_code == 200
+    assert "DRY RUN" in response.text
+    assert "Dry-run prepared: 1" in response.text
+    assert calls == {"count": 1, "real_apply": False}
+    assert invalid_count.status_code == 400
+    assert invalid_mode.status_code == 400
+
+
+def test_dashboard_exposes_application_batch_separately_from_pipeline():
+    form = main._application_batch_form(36)
+    assert "value='36'" in form
+    assert "Start application batch" in form
+    assert "value='dry_run' checked" in form
+    assert "value='real'" in form
+    assert "The reviewed pipeline's jobs are reports-only" in main._application_batch_form(0)
+
+
+def test_dashboard_renders_batch_action_and_clear_scan_label(monkeypatch):
+    monkeypatch.setattr(auto_apply, "eligible_jobs", lambda limit: [{}] * 36)
+    with TestClient(main.app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Apply to matched jobs" in response.text
+    assert "action='/daily/automate-apply'" in response.text
+    assert "value='36'" in response.text
+    assert "Run reviewed-source pipeline (scan only)" in response.text
 
 
 def test_auto_apply_candidate_filters_restrict_country(monkeypatch):

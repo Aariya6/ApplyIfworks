@@ -1,8 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse,RedirectResponse,FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-import json,html
+import json,html,threading,uuid
 from .db import jobs,applications,get_job,source_health,companies,qnas,save_qna
 from .services.tailor import tailor,load_profile
 from .services.letters import generate_letter
@@ -25,12 +25,177 @@ SOURCE_CHANNELS = ["application", "referral", "recruiter_search", "direct_outrea
 REJECTION_REASONS = ["unspecified", "no_response", "role_filled", "experience_gap", "location_or_work_auth",
     "salary_mismatch", "lost_to_other_candidate", "process_stalled", "other"]
 ROOT=Path(__file__).resolve().parents[1]; app=FastAPI(title="Remote Job Pilot",version="4.3.0"); app.mount("/static",StaticFiles(directory=str(ROOT/"app/static")),name="static")
+_AUTOMATION_RUNS = {}
+_AUTOMATION_RUNS_LOCK = threading.Lock()
 def page(title,body): return HTMLResponse(f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{html.escape(title)}</title>"
     f"<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>"
     f"<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600;700&display=swap'>"
     f"<link rel='stylesheet' href='/static/app.css'><script defer src='/static/sort.js'></script></head><body>"
     f"<nav><div class='brand'>Remote Job Pilot</div><div class='nav-links'><a href='/'>Dashboard</a><a href='/pipeline'>Pipeline</a><a href='/ireland'>Ireland</a><a href='/italy'>Italy</a><a href='/sources'>Sources</a><a href='/companies'>Companies</a><a href='/skill-gaps'>Skill Gaps</a><a href='/portfolio'>Portfolio</a><a href='/profile'>Profile</a><a href='/daily'>Daily</a><a href='/applications'>Tracker</a><a href='/resume'>Resume</a><a href='/qna'>Application Q&amp;A</a><a href='/settings'>Safety</a></div></nav>"
     f"<main>{body}</main></body></html>")
+
+
+def _update_automation_run(run_id, *, status=None, results=None, current=None, error=None):
+    with _AUTOMATION_RUNS_LOCK:
+        run = _AUTOMATION_RUNS.get(run_id)
+        if not run:
+            return
+        if status is not None:
+            run["status"] = status
+        if results is not None:
+            run["results"] = results
+        if current is not None or status == "completed" or results is not None:
+            run["current"] = current
+        if error is not None:
+            run["error"] = error
+
+
+def _execute_automation_run(run_id):
+    with _AUTOMATION_RUNS_LOCK:
+        run = _AUTOMATION_RUNS.get(run_id)
+        if not run:
+            return
+        parameters = dict(run)
+    _update_automation_run(run_id, status="running")
+    try:
+        from .services.auto_apply import run_batch
+
+        result = run_batch(
+            parameters["count"],
+            real_apply=parameters["real_apply"],
+            country=parameters["country"],
+            remote_from_india=parameters["remote_from_india"],
+            progress_callback=lambda results, current: _update_automation_run(
+                run_id,
+                results=results,
+                current=current,
+            ),
+        )
+        _update_automation_run(run_id, status="completed", results=result)
+    except Exception as exc:
+        _update_automation_run(
+            run_id,
+            status="failed",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+
+
+def _start_automation_run(background_tasks, *, count, real_apply, country=None, remote_from_india=False):
+    run_id = uuid.uuid4().hex
+    with _AUTOMATION_RUNS_LOCK:
+        if any(run["status"] in {"queued", "running"} for run in _AUTOMATION_RUNS.values()):
+            raise RuntimeError("An application batch is already running. Wait for it to finish before starting another.")
+        completed = [
+            key for key, run in _AUTOMATION_RUNS.items()
+            if run["status"] in {"completed", "failed"}
+        ]
+        for key in completed[:-40]:
+            _AUTOMATION_RUNS.pop(key, None)
+        _AUTOMATION_RUNS[run_id] = {
+            "status": "queued",
+            "count": count,
+            "real_apply": real_apply,
+            "country": country,
+            "remote_from_india": remote_from_india,
+            "results": {
+                "requested": count,
+                "submitted": 0,
+                "dry_run": 0,
+                "requires_human": 0,
+                "failed": 0,
+                "details": [],
+            },
+            "current": None,
+            "error": None,
+        }
+    background_tasks.add_task(_execute_automation_run, run_id)
+    return run_id
+
+
+def _automation_run_page(run_id):
+    with _AUTOMATION_RUNS_LOCK:
+        run = _AUTOMATION_RUNS.get(run_id)
+        if run:
+            run = {**run, "results": {**run["results"], "details": list(run["results"]["details"])}}
+    if not run:
+        return HTMLResponse("Automation run not found.", status_code=404)
+    results = run["results"]
+    mode = "REAL SUBMISSION" if run["real_apply"] else "DRY RUN — no applications submitted"
+    current = run.get("current")
+    if run["status"] in {"queued", "running"}:
+        current_text = ""
+        if current:
+            current_text = (
+                f" Currently processing {html.escape(str(current.get('company') or ''))} — "
+                f"{html.escape(str(current.get('title') or ''))}."
+            )
+        body = (
+            f"<h1>Application batch {html.escape(run['status'])}</h1>"
+            f"<p>Mode: <b>{mode}</b>. Requested up to {run['count']} jobs. "
+            f"Completed attempts: {len(results['details'])}.</p>"
+            f"<p>{current_text}</p>"
+            "<p>This page refreshes automatically while the batch is running. You can leave it open.</p>"
+            f"<p><a href='/daily'>Daily automation</a></p>"
+        )
+        response = page("Application batch running", body)
+        response.headers["Refresh"] = f"3; url=/automation/{run_id}"
+        return response
+    if run["status"] == "failed":
+        body = (
+            f"<h1>Application batch failed</h1><p>Mode: <b>{mode}</b>.</p>"
+            f"<p>{html.escape(str(run.get('error') or 'Unexpected error'))}</p>"
+            f"<p><a href='/daily'>Back to Daily automation</a></p>"
+        )
+        return page("Application batch failed", body)
+    details = "".join(
+        "<tr>"
+        f"<td>{html.escape(str(item.get('status') or ''))}</td>"
+        f"<td>{html.escape(str(item.get('company') or ''))}</td>"
+        f"<td>{html.escape(str(item.get('title') or ''))}</td>"
+        f"<td>{html.escape(str(item.get('error') or ''))}</td>"
+        "</tr>"
+        for item in results["details"]
+    ) or "<tr><td colspan='4'>No eligible jobs were found to attempt.</td></tr>"
+    body = (
+        "<h1>Application batch results</h1>"
+        f"<p>Mode: <b>{mode}</b>. Requested {results.get('requested',run['count'])}; "
+        f"checked {results.get('eligible_pool_checked',0)} eligible jobs.</p>"
+        f"<p>Submitted: {results['submitted']} · Dry-run prepared: {results['dry_run']} · "
+        f"Needs human review: {results['requires_human']} · Failed: {results['failed']}.</p>"
+        f"{'<p><b>Daily submission cap reached — stopped early.</b></p>' if results.get('cap_reached') else ''}"
+        f"<table><tr><th>Status</th><th>Company</th><th>Role</th><th>Error</th></tr>{details}</table>"
+        "<p><a href='/daily'>Back to Daily automation</a></p>"
+    )
+    return page("Application batch results", body)
+
+
+@app.get("/automation/{run_id}", response_class=HTMLResponse)
+def automation_run_status(run_id: str):
+    return _automation_run_page(run_id)
+
+
+def _application_batch_form(eligible_count, action="/daily/automate-apply", extra_fields=""):
+    batch_count = min(eligible_count, 50)
+    if not batch_count:
+        return (
+            "<p><b>No jobs currently pass the application automation gates.</b> "
+            "The reviewed pipeline's jobs are reports-only and do not enter this queue.</p>"
+        )
+    return (
+        f"<p>{eligible_count}{'+' if eligible_count >= 500 else ''} eligible legacy-queue jobs. "
+        f"This form starts a batch of up to {batch_count}; choose dry run to check it first.</p>"
+        f"<form method='post' action='{html.escape(action, quote=True)}'>"
+        f"<label>Jobs in this batch: <input type='number' name='count' min='1' max='{batch_count}' "
+        f"value='{batch_count}' required></label> "
+        "<label><input type='radio' name='mode' value='dry_run' checked> Dry run only</label> "
+        "<label><input type='radio' name='mode' value='real'> Real submission</label> "
+        f"{extra_fields}<button>Start application batch</button></form>"
+        "<p>The server returns a progress page immediately. Real mode submits only the selected "
+        "number of jobs that pass the existing per-job gates; CAPTCHA, MFA, and ambiguous questions "
+        "stop for human review.</p>"
+    )
+
+
 @app.get("/",response_class=HTMLResponse)
 def home(tier: str = "ALL"):
     p=load_profile(); js=jobs(2000)
@@ -40,6 +205,8 @@ def home(tier: str = "ALL"):
     if tier!="ALL": pool=[j for j in pool if j.get("fit_tier")==tier]
     ready=sorted(pool,key=lambda j:j.get("fit_score",0),reverse=True)[:60]
     sh=source_health(); apps=applications(500); needs=sum(1 for a in apps if a.get("status") in {"REQUIRES_HUMAN","READY_TO_SUBMIT","SUBMIT_CLICKED_REVIEW"})
+    from .services.auto_apply import eligible_jobs
+    automatable_count=len(eligible_jobs(limit=500))
     tier_badge={"QUALIFIED":"🟢 Qualified","TRANSFERABLE":"🔵 Transferable","STRETCH":"🟡 Stretch","MISMATCH":"⚪ Mismatch","EXCLUDED":"⛔ Excluded"}
     tabs="".join(f"<a href='/?tier={t}'{' style=\"font-weight:bold\"' if tier==t else ''}>{tier_badge.get(t,t)} ({tier_counts.get(t,0)})</a> " for t in ["ALL","QUALIFIED","TRANSFERABLE","STRETCH"])
     def posted_cell(j):
@@ -49,7 +216,8 @@ def home(tier: str = "ALL"):
         if age==1: return 1,"1d ago"
         return age,f"{age}d ago"
     cards="".join((lambda age_val,age_txt: f"<tr><td><b>{j.get('fit_score',0):.0f}</b><br><small>{tier_badge.get(j.get('fit_tier'),'')}</small></td><td><b>{html.escape(j['title'])}</b><br>{html.escape(j['company'])}</td><td>{html.escape(j['location'])}<br><small>{html.escape(j.get('country',''))}</small></td><td>{html.escape(j.get('role_family',''))}</td><td>{html.escape(j.get('application_friction',''))}</td><td data-val='{html.escape(j.get('work_auth','UNKNOWN'))}'>{html.escape(j.get('work_auth','unknown'))}</td><td data-val='{age_val}'>{age_txt}</td><td><a href='/job/{j['id']}'>Open</a></td></tr>")(*posted_cell(j)) for j in ready)
-    body=f"<div class='hero'><h1>EU Remote Job Queue</h1><p>This legacy queue uses previously discovered jobs. Run the reviewed-source pipeline for a fresh, auditable search and see its results on the Pipeline page.</p><form method='post' action='/pipeline/run'><button>Run reviewed-source pipeline</button></form></div><div class='stats'><div><b>{len(js)}</b><span>legacy jobs stored</span></div><div><b>{len(ready)}</b><span>shown</span></div><div><b>{len(apps)}</b><span>applications</span></div><div><b>{needs}</b><span>needs attention</span></div><div><b>{len(sh)}</b><span>legacy source records</span></div><div><b>{submitted_today()}/{daily_cap() or '∞'}</b><span>daily submissions</span></div></div><h2>Legacy queue</h2><p>{tabs}</p><table class='sortable'><tr><th>Fit</th><th>Role</th><th>Location / Country</th><th>Family</th><th>Friction</th><th data-sort='text'>Work auth</th><th data-sort='num'>Date posted</th><th></th></tr>{cards}</table>"; return page("Dashboard",body)
+    batch_form=_application_batch_form(automatable_count)
+    body=f"<div class='hero'><h1>EU Remote Job Queue</h1><p>This legacy queue uses previously discovered jobs. Run the reviewed-source pipeline for a fresh, auditable search and see its results on the Pipeline page.</p><form method='post' action='/pipeline/run'><button>Run reviewed-source pipeline (scan only)</button></form></div><section class='automate-bar'><h2>Apply to matched jobs</h2><p>This is separate from the reviewed-source scan. It uses only eligible jobs in the legacy queue.</p>{batch_form}</section><div class='stats'><div><b>{len(js)}</b><span>legacy jobs stored</span></div><div><b>{len(ready)}</b><span>shown</span></div><div><b>{len(apps)}</b><span>applications</span></div><div><b>{needs}</b><span>needs attention</span></div><div><b>{len(sh)}</b><span>legacy source records</span></div><div><b>{submitted_today()}/{daily_cap() or '∞'}</b><span>daily submissions</span></div></div><h2>Legacy queue</h2><p>{tabs}</p><table class='sortable'><tr><th>Fit</th><th>Role</th><th>Location / Country</th><th>Family</th><th>Friction</th><th data-sort='text'>Work auth</th><th data-sort='num'>Date posted</th><th></th></tr>{cards}</table>"; return page("Dashboard",body)
 @app.post("/discover")
 def discover_route(): return run_reviewed_pipeline()
 
@@ -300,6 +468,7 @@ def italy_page(mode: str = "all"):
 
 @app.post("/region/{region}/automate-apply", response_class=HTMLResponse)
 def region_automate_apply_route(
+    background_tasks: BackgroundTasks,
     region: str,
     count: int = Form(...),
     mode: str = Form(...),
@@ -314,31 +483,17 @@ def region_automate_apply_route(
         return HTMLResponse("Choose dry_run or real mode.", status_code=400)
     if filter_mode not in {"all", "remote-india"}:
         return HTMLResponse("Unknown country filter.", status_code=400)
-    from .services.auto_apply import run_batch
-
-    result = run_batch(
-        count,
-        real_apply=(mode == "real"),
-        country=region_key,
-        remote_from_india=(filter_mode == "remote-india"),
-    )
-    details = "".join(
-        f"<tr><td>{html.escape(str(item.get('status','')))}</td>"
-        f"<td>{html.escape(str(item.get('company') or ''))}</td>"
-        f"<td>{html.escape(str(item.get('title') or ''))}</td></tr>"
-        for item in result["details"]
-    ) or "<tr><td colspan='3'>No jobs qualified for an attempt.</td></tr>"
-    summary = (
-        f"<h1>{html.escape(REGIONS[region_key]['label'])} batch result</h1>"
-        f"<p>Requested {count}; mode: {'real submission' if mode == 'real' else 'dry run'}; "
-        f"submitted {result['submitted']}; dry-run {result['dry_run']}; "
-        f"human review {result['requires_human']}; failed {result['failed']}.</p>"
-        f"<p>Eligible jobs checked: {result['eligible_pool_checked']}."
-        f"{' Daily cap reached.' if result['cap_reached'] else ''}</p>"
-        f"<table><tr><th>Status</th><th>Employer</th><th>Role</th></tr>{details}</table>"
-        f"<p><a href='/{region_key}?mode={filter_mode}'>Back to {html.escape(REGIONS[region_key]['label'])}</a></p>"
-    )
-    return page("Country batch result", summary)
+    try:
+        run_id = _start_automation_run(
+            background_tasks,
+            count=count,
+            real_apply=mode == "real",
+            country=region_key,
+            remote_from_india=filter_mode == "remote-india",
+        )
+    except RuntimeError as exc:
+        return HTMLResponse(html.escape(str(exc)), status_code=409)
+    return RedirectResponse(f"/automation/{run_id}", status_code=303)
 
 
 @app.post('/audit-sources')
@@ -775,14 +930,8 @@ def daily_control_center():
     automatable_pool=len(eligible_jobs(limit=500))
     automate_bar=(f"<div class='automate-bar'>"
         f"<b>Automate Apply</b> — {automatable_pool} jobs currently eligible (QUALIFIED/TRANSFERABLE, "
-        f"on a non-CAPTCHA-proven ATS, not yet applied to). Dry run fills and screenshots forms "
-        f"without submitting anything. Real submission still respects the {daily_cap() or 'unlimited'}/day cap "
-        f"and stops short (REQUIRES_HUMAN) on any job where a CAPTCHA is detected.<br>"
-        f"<form method='post' action='/daily/automate-apply' style='margin-top:6px'>"
-        f"Count: <input type='number' name='count' value='10' min='1' max='{max(automatable_pool,1)}' style='width:70px'> "
-        f"<label><input type='radio' name='mode' value='dry_run' checked> Dry run (recommended first)</label> "
-        f"<label><input type='radio' name='mode' value='real'> Real submission</label> "
-        f"<button>Run</button></form></div>")
+        f"on a supported ATS, not yet applied to). "
+        f"{_application_batch_form(automatable_pool,action='/daily/automate-apply')}</div>")
     body=(f"<h1>Daily Control Center</h1><p>Immediately answers: did I actually apply today, and to what quality of job — never inferred, never a manufactured quota.</p>"
         f"<form method='post' action='/daily/set-target'>Daily target: <input type='number' name='target' value='{target}' style='width:80px'> <button>Update</button></form>"
         f"{automate_bar}"
@@ -798,22 +947,25 @@ def daily_control_center():
         + "<p><small>Patterns across many rejections are informative; a single rejection is not. Recorded only when a human sets the outcome.</small></p>")
     return page("Daily Control Center", body)
 
-@app.post("/daily/automate-apply",response_class=HTMLResponse)
-def automate_apply_route(count: int = Form(...), mode: str = Form(...)):
-    from .services.auto_apply import run_batch
-    real=(mode=="real")
-    r=run_batch(count,real_apply=real)
-    def _row(d):
-        return f"<tr><td>{html.escape(d['status'])}</td><td>{html.escape(d.get('company') or '?')}</td><td>{html.escape(d.get('title') or '?')}</td><td><a href='/job/{html.escape(d['job_id'])}'>view</a></td>{('<td>'+html.escape(d['error'])+'</td>') if d.get('error') else '<td></td>'}</tr>"
-    rows="".join(_row(d) for d in r["details"]) or "<tr><td colspan='5'>No eligible jobs were found to attempt.</td></tr>"
-    headline=f"Submitted: {r['submitted']} &nbsp; Dry-run filled: {r['dry_run']} &nbsp; Needs human (CAPTCHA/review): {r['requires_human']} &nbsp; Failed: {r['failed']}"
-    cap_note="<p><b>Daily submission cap reached — stopped early.</b></p>" if r["cap_reached"] else ""
-    body=(f"<h1>Automate Apply — results</h1>"
-        f"<p>Mode: {'<b>REAL SUBMISSION</b>' if real else 'Dry run (nothing submitted)'}. Requested {r['requested']}, checked {r['eligible_pool_checked']} eligible jobs.</p>"
-        f"<p>{headline}</p>{cap_note}"
-        f"<table><tr><th>Status</th><th>Company</th><th>Title</th><th></th><th>Error</th></tr>{rows}</table>"
-        f"<p><a href='/daily'>Back to Daily Control Center</a></p>")
-    return page("Automate Apply — results", body)
+@app.post("/daily/automate-apply")
+def automate_apply_route(
+    background_tasks: BackgroundTasks,
+    count: int = Form(...),
+    mode: str = Form(...),
+):
+    if count < 1 or count > 50:
+        return HTMLResponse("Batch size must be from 1 to 50.", status_code=400)
+    if mode not in {"dry_run", "real"}:
+        return HTMLResponse("Choose dry_run or real mode.", status_code=400)
+    try:
+        run_id = _start_automation_run(
+            background_tasks,
+            count=count,
+            real_apply=mode == "real",
+        )
+    except RuntimeError as exc:
+        return HTMLResponse(html.escape(str(exc)), status_code=409)
+    return RedirectResponse(f"/automation/{run_id}", status_code=303)
 
 @app.post("/daily/set-target")
 def set_daily_target_route(target: int = Form(...)):

@@ -71,6 +71,10 @@ scraped. Each tab also has a country-scoped batch action using the existing ATS,
 CAPTCHA, and human-review safeguards. The Daily page's all-country batch can include qualified
 Ireland/Italy jobs in that shared queue; reviewed-pipeline-only records remain report/draft-only
 and are not silently promoted into application submissions.
+The dashboard also exposes **Apply to matched jobs** separately from the reviewed-source scan.
+Application batches default to dry-run, accept up to 50 jobs, and return a live progress page
+instead of holding the form request open while browser checks run. Selecting real submission
+explicitly authorizes that batch; existing daily caps and per-job human-review gates still apply.
 
 Review the source registry and full behavior, data flow, example output, limitations, and rollback
 steps in [docs/JOB_PIPELINE.md](docs/JOB_PIPELINE.md).
@@ -79,7 +83,8 @@ steps in [docs/JOB_PIPELINE.md](docs/JOB_PIPELINE.md).
 
 - Never uses your normal Chrome profile — an isolated profile under `data/browser-profile/` only.
 - `DRY_RUN` is the default mode everywhere.
-- Real submission requires an explicit per-job confirmation token.
+- Real batch submission requires explicitly selecting the real-submission option; the backend
+  also checks its per-job confirmation token immediately before submitting.
 - CAPTCHA, MFA, work authorization, visa, salary, demographic, and ambiguous screening questions
   force `REQUIRES_HUMAN` — never guessed.
 - No CAPTCHA solving, stealth/fingerprint spoofing, proxy rotation for evasion, or anti-bot

@@ -63,7 +63,7 @@ def eligible_jobs(limit=200, country=None, remote_from_india=False):
     return out
 
 
-def run_batch(count, real_apply=False, country=None, remote_from_india=False):
+def run_batch(count, real_apply=False, country=None, remote_from_india=False, progress_callback=None):
     """Attempt up to `count` applications. In real_apply mode, generates the per-job
     CONFIRM-{job_id} token itself -- the batch call as a whole is the explicit authorization;
     per-job tokens exist to stop a single stray/scripted call, not to gate a deliberately
@@ -81,10 +81,24 @@ def run_batch(count, real_apply=False, country=None, remote_from_india=False):
         country=country,
         remote_from_india=remote_from_india,
     )
+
+    def notify(current=None):
+        if progress_callback:
+            progress_callback(
+                {**results, "details": list(results["details"])},
+                current,
+            )
+
     for job in candidates:
         if results[target_field] >= count:
             break
         job_id = job["id"]
+        current = {
+            "job_id": job_id,
+            "title": job.get("title"),
+            "company": job.get("company"),
+        }
+        notify(current)
         if _already_applied(job_id):
             continue
         if real_apply:
@@ -93,12 +107,14 @@ def run_batch(count, real_apply=False, country=None, remote_from_india=False):
             except RuntimeError as e:
                 results["cap_reached"] = True
                 results["details"].append({"job_id": job_id, "title": job.get("title"), "company": job.get("company"), "status": "DAILY_CAP_REACHED", "error": str(e)})
+                notify()
                 break
         try:
             tailor(job_id)
         except Exception as e:
             results["failed"] += 1
             results["details"].append({"job_id": job_id, "title": job.get("title"), "company": job.get("company"), "status": "TAILOR_FAILED", "error": str(e)})
+            notify()
             continue
         try:
             token = f"CONFIRM-{job_id}" if real_apply else None
@@ -107,6 +123,7 @@ def run_batch(count, real_apply=False, country=None, remote_from_india=False):
         except Exception as e:
             results["failed"] += 1
             results["details"].append({"job_id": job_id, "title": job.get("title"), "company": job.get("company"), "status": "ERROR", "error": str(e)})
+            notify()
             continue
         entry = {"job_id": job_id, "title": job.get("title"), "company": job.get("company"), "status": status}
         results["details"].append(entry)
@@ -118,5 +135,7 @@ def run_batch(count, real_apply=False, country=None, remote_from_india=False):
             results["requires_human"] += 1
         else:
             results["failed"] += 1
+        notify()
     results["eligible_pool_checked"] = len(candidates)
+    notify()
     return results
